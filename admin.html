@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - ALSHANFRICC</title>
+    
+    <!-- Google Font: Cairo للخط العربي الجميل -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- ملف تنسيقات لوحة التحكم -->
+    <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+
+    <!-- ============================================================
+         شاشة تسجيل الدخول (تظهر افتراضياً)
+         ============================================================ -->
+    <div id="login-screen">
+        <form id="login-form">
+            <!-- شعار أو اسم الموقع -->
+            <h2>🔐 لوحة التحكم</h2>
+            <p style="color: #65676b; margin-bottom: 20px;">الرجاء تسجيل الدخول للمتابعة</p>
+            
+            <!-- حقل البريد الإلكتروني -->
+            <input type="email" id="email" placeholder="البريد الإلكتروني" required autocomplete="email">
+            
+            <!-- حقل كلمة المرور -->
+            <input type="password" id="password" placeholder="كلمة المرور" required autocomplete="current-password">
+            
+            <!-- زر تسجيل الدخول -->
+            <button type="submit">دخول</button>
+            
+            <!-- رسالة خطأ (تظهر عند فشل الدخول) -->
+            <div id="login-error" style="color: #e74c3c; margin-top: 15px; display: none;"></div>
+        </form>
+    </div>
+
+    <!-- ============================================================
+         لوحة التحكم الرئيسية (مخفية حتى تسجيل الدخول)
+         ============================================================ -->
+    <div id="admin-screen" style="display: none;">
+        
+        <!-- زر القائمة للجوال (يظهر فقط على الشاشات الصغيرة) -->
+        <button class="mobile-toggle" onclick="toggleSidebar()" title="القائمة">☰</button>
+        
+        <!-- الشريط الجانبي -->
+        <nav class="admin-sidebar" id="adminSidebar">
+            <h3>⚙️ الإدارة</h3>
+            <ul>
+                <!-- كل عنصر يحتوي على data-section لتحميل القسم المناسب -->
+                <li data-section="header" class="active">
+                    <span class="icon">🎨</span> إدارة الهيدر
+                </li>
+                <li data-section="body">
+                    <span class="icon">📄</span> إدارة البدي
+                </li>
+                <li data-section="footer">
+                    <span class="icon">📌</span> إدارة الفوتر
+                </li>
+                <li data-section="categories">
+                    <span class="icon">📂</span> التبويبات والفروع
+                </li>
+                <li data-section="posts">
+                    <span class="icon">📝</span> المنشورات
+                </li>
+                <li data-section="authors">
+                    <span class="icon">✍️</span> الكتّاب
+                </li>
+                <li data-section="keys">
+                    <span class="icon">🔑</span> المفاتيح
+                </li>
+            </ul>
+            
+            <!-- زر تسجيل الخروج -->
+            <div style="padding: 20px; border-top: 1px solid #e4e6eb; margin-top: 20px;">
+                <button id="logout-btn" class="btn btn-outline" style="width: 100%;" onclick="logoutAdmin()">
+                    🚪 تسجيل الخروج
+                </button>
+                <a href="index.html" style="display: block; text-align: center; margin-top: 10px; color: #65676b; font-size: 0.9rem;">
+                    ⬅️ العودة للموقع
+                </a>
+            </div>
+        </nav>
+        
+        <!-- منطقة المحتوى الرئيسية (تتغير حسب القسم المحدد) -->
+        <main id="content-panel">
+            <!-- يتم تحميل المحتوى هنا ديناميكياً عبر admin.js -->
+            <div class="loading-spinner">⏳ جاري تحميل لوحة التحكم...</div>
+        </main>
+    </div>
+
+    <!-- ============================================================
+         مكتبات Firebase (نسخة Compat)
+         ============================================================ -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+    
+    <!-- ============================================================
+         ملفات الجافاسكريبت الخاصة بالمشروع (بالترتيب)
+         ============================================================ -->
+    <!-- 1. إعدادات Firebase ومفاتيح المشروع -->
+    <script src="assets/js/firebase-config.js"></script>
+    
+    <!-- 2. الدوال المساعدة المشتركة -->
+    <script src="assets/js/utils.js"></script>
+    
+    <!-- 3. منطق لوحة التحكم -->
+    <script src="assets/js/admin.js"></script>
+
+    <!-- ============================================================
+         دالة إضافية للجوال: تبديل الشريط الجانبي
+         ============================================================ -->
+    <script>
+        /**
+         * إظهار/إخفاء الشريط الجانبي على الجوال
+         */
+        function toggleSidebar() {
+            const sidebar = document.getElementById('adminSidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('open');
+            }
+        }
+        
+        // إغلاق الشريط الجانبي عند النقر على أي قسم (في الجوال)
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('adminSidebar');
+            if (sidebar && sidebar.classList.contains('open') && e.target.closest('.admin-sidebar ul li')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+
+</body>
+</html> 
