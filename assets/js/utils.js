@@ -1,196 +1,28 @@
 // ============================================================
-//  ملف: utils.js
+//  ملف: utils.js (مُحدّث)
 //  الوظيفة: دوال مساعدة مشتركة لجميع أجزاء الموقع
-//  يشمل: إدارة الإعدادات، تنسيق الوقت، معالجة النصوص، إلخ
+//  يشمل: إدارة الإعدادات، تنسيق الوقت، معالجة النصوص، الخطوط
+//  يعتمد على: firebase-config.js
 // ============================================================
 
-// ---------- 1. دوال الإعدادات (Firestore) ----------
+// ---------- 1. الإعدادات الافتراضية ----------
+const DEFAULT_SETTINGS = {
+  siteName: 'ALSHANFRICC',
+  subtitle: 'مساحة الأناقة والمعرفة',
+  primaryColor: '#c48b4c',
+  logoFont: 'Playfair Display',
+  bodyFont: 'Cairo',
+  darkMode: false,
+  footerText: 'جميع الحقوق محفوظة',
+  facebookUrl: '#',
+  twitterUrl: '#',
+  instagramUrl: '#',
+  bodyBackground: '#f0f2f5'
+};
 
-/**
- * جلب قيمة إعداد معين من مجموعة "settings" > وثيقة "site"
- * @param {string} key - اسم الإعداد
- * @param {*} defaultValue - القيمة الافتراضية إذا لم يوجد الإعداد
- * @returns {*} قيمة الإعداد
- */
-async function getSetting(key, defaultValue = '') {
-    try {
-        const doc = await db.collection('settings').doc('site').get();
-        if (doc.exists && doc.data()[key] !== undefined) {
-            return doc.data()[key];
-        }
-        return defaultValue;
-    } catch (error) {
-        console.error(`خطأ في جلب الإعداد (${key}):`, error);
-        return defaultValue;
-    }
-}
-
-/**
- * تحديث أو إنشاء إعداد معين
- * @param {string} key - اسم الإعداد
- * @param {*} value - القيمة الجديدة
- */
-async function updateSetting(key, value) {
-    try {
-        await db.collection('settings').doc('site').set({
-            [key]: value
-        }, { merge: true });
-        console.log(`✅ تم تحديث الإعداد: ${key}`);
-    } catch (error) {
-        console.error(`خطأ في تحديث الإعداد (${key}):`, error);
-    }
-}
-
-/**
- * جلب جميع الإعدادات مرة واحدة
- * @returns {Object} كائن يحتوي جميع الإعدادات
- */
-async function getAllSettings() {
-    try {
-        const doc = await db.collection('settings').doc('site').get();
-        return doc.exists ? doc.data() : {};
-    } catch (error) {
-        console.error('خطأ في جلب جميع الإعدادات:', error);
-        return {};
-    }
-}
-
-// ---------- 2. دوال الوقت والتاريخ ----------
-
-/**
- * تحويل التاريخ إلى نص "منذ فترة" بالعربية
- * @param {string|Date} date - التاريخ بصيغة ISO أو كائن Date
- * @returns {string} مثل "الآن"، "قبل 5 دقائق"، "قبل 3 أيام"
- */
-function timeAgo(date) {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    if (seconds < 0) return 'الآن';
-    if (seconds < 60) return 'الآن';
-    
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `قبل ${minutes} دقيقة`;
-    
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `قبل ${hours} ساعة`;
-    
-    const days = Math.floor(hours / 24);
-    if (days < 30) return `قبل ${days} يوم`;
-    
-    const months = Math.floor(days / 30);
-    if (months < 12) return `قبل ${months} شهر`;
-    
-    const years = Math.floor(days / 365);
-    return `قبل ${years} سنة`;
-}
-
-/**
- * تنسيق التاريخ بالعربية
- * @param {string|Date} date
- * @returns {string} مثال: "15 مايو 2026"
- */
-function formatDateArabic(date) {
-    return new Date(date).toLocaleDateString('ar-SA', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-}
-
-// ---------- 3. دوال النصوص والمحتوى ----------
-
-/**
- * اقتطاع النص إلى عدد معين من الأحرف (للمعاينة)
- * @param {string} text - النص الكامل
- * @param {number} maxLength - أقصى عدد أحرف
- * @returns {string} النص المقتطع مع "..."
- */
-function truncateText(text, maxLength = 200) {
-    if (!text || text.length <= maxLength) return text || '';
-    return text.substring(0, maxLength) + '...';
-}
-
-/**
- * استخراج أول رابط صورة من مصفوفة محتوى المقال
- * @param {Array} contentArray - مصفوفة عناصر المحتوى
- * @returns {string|null} رابط الصورة الأولى أو null
- */
-function getFirstImage(contentArray) {
-    if (!Array.isArray(contentArray)) return null;
-    const imageElement = contentArray.find(el => el.type === 'image');
-    return imageElement ? imageElement.value : null;
-}
-
-/**
- * استخراج نص المحتوى فقط (بدون صور) للمعاينة
- * @param {Array} contentArray
- * @returns {string}
- */
-function getTextOnly(contentArray) {
-    if (!Array.isArray(contentArray)) return '';
-    return contentArray
-        .filter(el => el.type === 'text' || el.type === 'quote')
-        .map(el => el.value)
-        .join(' ')
-        .substring(0, 300);
-}
-
-// ---------- 4. دوال الأمان والتنظيف ----------
-
-/**
- * تنظيف النص من أكواد HTML ضارة (حماية XSS بسيطة)
- * @param {string} str - النص المدخل
- * @returns {string} النص النظيف
- */
-function sanitizeHTML(str) {
-    const temp = document.createElement('div');
-    temp.textContent = str;
-    return temp.innerHTML;
-}
-
-/**
- * إنشاء معرف فريد (UUID مبسط)
- * @returns {string} معرف فريد
- */
-function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
-}
-
-// ---------- 5. دوال واجهة المستخدم ----------
-
-/**
- * Debounce لتأخير تنفيذ دالة (مفيدة لحقل البحث)
- * @param {Function} func - الدالة المراد تأخيرها
- * @param {number} wait - وقت الانتظار بالميلي ثانية
- * @returns {Function}
- */
-function debounce(func, wait = 300) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-/**
- * تمرير سلس إلى عنصر معين
- * @param {string} elementId - معرف العنصر
- */
-function scrollToElement(elementId) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-}
-
-// ============================================================
-// قائمة الخطوط الكاملة (20 عربي + 20 إنجليزي)
-// ============================================================
+// ---------- 2. قائمة الخطوط الكاملة (20 عربي + 20 إنجليزي) ----------
 const AVAILABLE_FONTS = [
-  // ---- خطوط عربية ----
+  // خطوط عربية
   { name: 'Cairo', type: 'عربي' },
   { name: 'Tajawal', type: 'عربي' },
   { name: 'Amiri', type: 'عربي' },
@@ -211,8 +43,7 @@ const AVAILABLE_FONTS = [
   { name: 'Mada', type: 'عربي' },
   { name: 'Zain', type: 'عربي' },
   { name: 'Ibrahim', type: 'عربي' },
-
-  // ---- خطوط إنجليزية ----
+  // خطوط إنجليزية
   { name: 'Playfair Display', type: 'إنجليزي' },
   { name: 'Poppins', type: 'إنجليزي' },
   { name: 'Lora', type: 'إنجليزي' },
@@ -235,5 +66,159 @@ const AVAILABLE_FONTS = [
   { name: 'Abril Fatface', type: 'إنجليزي' }
 ];
 
-// ---------- 6. تأكيد التحميل ----------
+// ---------- 3. التخزين المؤقت للإعدادات ----------
+let cachedSettings = null;
+let cacheExpiry = 0;
+
+/**
+ * جلب جميع الإعدادات من Firestore مع تخزين مؤقت (5 دقائق)
+ * @returns {Object} كائن الإعدادات
+ */
+async function getAllSettingsCached() {
+  const now = Date.now();
+  if (cachedSettings && now < cacheExpiry) {
+    return cachedSettings;
+  }
+  try {
+    const doc = await db.collection('settings').doc('site').get();
+    if (doc.exists) {
+      cachedSettings = { ...DEFAULT_SETTINGS, ...doc.data() };
+    } else {
+      cachedSettings = { ...DEFAULT_SETTINGS };
+    }
+    cacheExpiry = now + 300000; // 5 دقائق
+    return cachedSettings;
+  } catch (error) {
+    console.error('خطأ في جلب الإعدادات:', error);
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+/**
+ * جلب قيمة إعداد واحد (يستخدم التخزين المؤقت)
+ * @param {string} key
+ * @param {*} defaultValue
+ * @returns {*}
+ */
+async function getSetting(key, defaultValue = '') {
+  const settings = await getAllSettingsCached();
+  return settings[key] !== undefined ? settings[key] : defaultValue;
+}
+
+/**
+ * تحديث إعداد معين في Firestore وإبطال التخزين المؤقت
+ * @param {string} key
+ * @param {*} value
+ */
+async function updateSetting(key, value) {
+  try {
+    await db.collection('settings').doc('site').set({ [key]: value }, { merge: true });
+    // إبطال التخزين المؤقت ليعكس التغييرات فوراً
+    cachedSettings = null;
+    cacheExpiry = 0;
+    console.log(`✅ تم تحديث الإعداد: ${key}`);
+  } catch (error) {
+    console.error(`خطأ في تحديث الإعداد (${key}):`, error);
+  }
+}
+
+// ---------- 4. دوال الوقت والتاريخ ----------
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  if (seconds < 0) return 'الآن';
+  if (seconds < 60) return 'الآن';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `قبل ${minutes} دقيقة`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `قبل ${hours} ساعة`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `قبل ${days} يوم`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `قبل ${months} شهر`;
+  return `قبل ${Math.floor(days / 365)} سنة`;
+}
+
+function formatDateArabic(date) {
+  return new Date(date).toLocaleDateString('ar-SA', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+}
+
+// ---------- 5. دوال النصوص والمحتوى ----------
+function truncateText(text, maxLength = 200) {
+  if (!text || text.length <= maxLength) return text || '';
+  return text.substring(0, maxLength) + '...';
+}
+
+function getFirstImage(contentArray) {
+  if (!Array.isArray(contentArray)) return null;
+  // يبحث عن أول صورة (قد تكون عنصر type=images أو type=image)
+  const img = contentArray.find(el => el.type === 'image' || el.type === 'images');
+  if (!img) return null;
+  if (img.type === 'image') return img.value; // رابط مباشر
+  if (img.images && img.images.length > 0) return img.images[0].dataUrl || img.images[0];
+  return null;
+}
+
+function getTextOnly(contentArray) {
+  if (!Array.isArray(contentArray)) return '';
+  return contentArray
+    .filter(el => el.type === 'text' || el.type === 'subtitle' || el.type === 'markdown' || el.type === 'html')
+    .map(el => el.value || '')
+    .join(' ')
+    .substring(0, 300);
+}
+
+function escapeHTML(str) {
+  const temp = document.createElement('div');
+  temp.textContent = str;
+  return temp.innerHTML;
+}
+
+// ---------- 6. دوال عامة ----------
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
+function sanitizeHTML(str) {
+  const temp = document.createElement('div');
+  temp.textContent = str;
+  return temp.innerHTML;
+}
+
+function debounce(func, wait = 300) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+function scrollToElement(elementId) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// ---------- 7. تطبيق خط ديناميكي (للواجهة الأمامية) ----------
+function applyFont(fontFamily, target = 'body') {
+  if (target === 'body') {
+    document.body.style.fontFamily = fontFamily + ', sans-serif';
+  } else if (target === 'title') {
+    const titles = document.querySelectorAll('.site-title, .post-title, .logo');
+    titles.forEach(el => el.style.fontFamily = fontFamily + ', serif');
+  }
+  // تحديث رابط Google Fonts إذا لزم الأمر
+  const link = document.getElementById('dynamic-font-link');
+  if (link) {
+    link.href = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, '+')}:wght@400;700&display=swap`;
+  }
+}
+
+// ---------- 8. تأكيد التحميل ----------
 console.log("✅ ملف utils.js تم تحميله بنجاح - جميع الدوال المساعدة جاهزة");
