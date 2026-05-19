@@ -225,11 +225,15 @@ async function loadHeaderSection(panel) {
             </div>
             <div class="form-group">
                 <label>نوع خط الشعار</label>
-                <select id="header-font" class="form-control">
-                    <option value="Playfair Display" ${logoFont === 'Playfair Display' ? 'selected' : ''}>Playfair Display</option>
-                    <option value="Cairo" ${logoFont === 'Cairo' ? 'selected' : ''}>Cairo</option>
-                    <option value="Tajawal" ${logoFont === 'Tajawal' ? 'selected' : ''}>Tajawal</option>
-                </select>
+                // ... أسطر أخرى
+<select id="header-font" class="form-control">
+  ${AVAILABLE_FONTS.map(f => 
+    `<option value="${f.name}" ${logoFont === f.name ? 'selected' : ''}>
+      ${f.name} (${f.type})
+    </option>`
+  ).join('')}
+</select>
+// ... أسطر أخرى
             </div>
             <div class="form-group">
                 <label>اللون الأساسي</label>
