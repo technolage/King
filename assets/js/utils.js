@@ -186,5 +186,54 @@ function scrollToElement(elementId) {
     }
 }
 
+// ============================================================
+// قائمة الخطوط الكاملة (20 عربي + 20 إنجليزي)
+// ============================================================
+const AVAILABLE_FONTS = [
+  // ---- خطوط عربية ----
+  { name: 'Cairo', type: 'عربي' },
+  { name: 'Tajawal', type: 'عربي' },
+  { name: 'Amiri', type: 'عربي' },
+  { name: 'El Messiri', type: 'عربي' },
+  { name: 'Almarai', type: 'عربي' },
+  { name: 'Changa', type: 'عربي' },
+  { name: 'Reem Kufi', type: 'عربي' },
+  { name: 'Scheherazade New', type: 'عربي' },
+  { name: 'Markazi Text', type: 'عربي' },
+  { name: 'Harmattan', type: 'عربي' },
+  { name: 'Lateef', type: 'عربي' },
+  { name: 'Aref Ruqaa', type: 'عربي' },
+  { name: 'Rakkas', type: 'عربي' },
+  { name: 'Lemonada', type: 'عربي' },
+  { name: 'Baloo Bhaijaan 2', type: 'عربي' },
+  { name: 'Noto Naskh Arabic', type: 'عربي' },
+  { name: 'Noto Kufi Arabic', type: 'عربي' },
+  { name: 'Mada', type: 'عربي' },
+  { name: 'Zain', type: 'عربي' },
+  { name: 'Ibrahim', type: 'عربي' },
+
+  // ---- خطوط إنجليزية ----
+  { name: 'Playfair Display', type: 'إنجليزي' },
+  { name: 'Poppins', type: 'إنجليزي' },
+  { name: 'Lora', type: 'إنجليزي' },
+  { name: 'Montserrat', type: 'إنجليزي' },
+  { name: 'Roboto', type: 'إنجليزي' },
+  { name: 'Open Sans', type: 'إنجليزي' },
+  { name: 'Raleway', type: 'إنجليزي' },
+  { name: 'Oswald', type: 'إنجليزي' },
+  { name: 'Merriweather', type: 'إنجليزي' },
+  { name: 'Pacifico', type: 'إنجليزي' },
+  { name: 'Nunito', type: 'إنجليزي' },
+  { name: 'Quicksand', type: 'إنجليزي' },
+  { name: 'Fira Sans', type: 'إنجليزي' },
+  { name: 'Ubuntu', type: 'إنجليزي' },
+  { name: 'PT Serif', type: 'إنجليزي' },
+  { name: 'Bitter', type: 'إنجليزي' },
+  { name: 'Josefin Sans', type: 'إنجليزي' },
+  { name: 'Dancing Script', type: 'إنجليزي' },
+  { name: 'Cinzel', type: 'إنجليزي' },
+  { name: 'Abril Fatface', type: 'إنجليزي' }
+];
+
 // ---------- 6. تأكيد التحميل ----------
 console.log("✅ ملف utils.js تم تحميله بنجاح - جميع الدوال المساعدة جاهزة");
