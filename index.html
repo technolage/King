@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- عنوان الصفحة (سيتم تحديثه ديناميكياً من الإعدادات) -->
+    <title id="page-title">ALSHANFRICC</title>
+    
+    <!-- وصف الموقع للـ SEO -->
+    <meta name="description" content="مجلة ALSHANFRICC - مساحة الأناقة والمعرفة">
+    
+    <!-- Google Fonts: خطوط أنيقة للعربية والإنجليزية -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- ملف التنسيقات الرئيسي -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <!-- Font Awesome للأيقونات (اختياري، يمكن استخدام الإيموجي بدلاً منه) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+    <!-- ============================================================
+         1. الهيدر (الشريط العلوي)
+         سيتم بناؤه بالكامل عبر header.js
+         ============================================================ -->
+    <header id="site-header">
+        <!-- محتوى الهيدر سيظهر هنا تلقائياً -->
+        <!-- يحتوي: الشعار، شريط البحث، قائمة التبويبات، الوضع الليلي -->
+    </header>
+
+    <!-- ============================================================
+         2. المحتوى الرئيسي (البدي)
+         يحتوي على عمود المقالات وعمود جانبي
+         ============================================================ -->
+    <main class="main-layout">
+        
+        <!-- عمود المقالات الرئيسي -->
+        <section id="posts-feed" class="feed">
+            <!-- المقالات ستظهر هنا تلقائياً عبر body.js -->
+            <!-- يتم تحميلها ديناميكياً مع التمرير اللانهائي -->
+        </section>
+        
+        <!-- العمود الجانبي (اختياري) -->
+        <aside class="right-sidebar">
+            <div class="sticky-widget">
+                <h4>روابط سريعة</h4>
+                <div id="sidebar-buttons">
+                    <!-- أزرار مخصصة ستظهر هنا من الإعدادات -->
+                </div>
+            </div>
+        </aside>
+        
+    </main>
+
+    <!-- ============================================================
+         3. الفوتر (التذييل)
+         سيتم بناؤه بالكامل عبر footer.js
+         ============================================================ -->
+    <footer id="site-footer">
+        <!-- محتوى الفوتر سيظهر هنا تلقائياً -->
+        <!-- يحتوي: تبويبات المقالات، روابط، حقوق النشر، بوابة الأدمن -->
+    </footer>
+
+    <!-- ============================================================
+         4. مكتبات Firebase (نسخة Compat - تدعم جميع المتصفحات)
+         يجب تحميلها قبل أي ملفات JavaScript خاصة بالمشروع
+         ============================================================ -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+    <!-- ============================================================
+         5. ملفات JavaScript الخاصة بالمشروع (بالترتيب المطلوب)
+         ============================================================ -->
+    
+    <!-- 5.1 إعدادات Firebase ومفاتيح المشروع -->
+    <script src="assets/js/firebase-config.js"></script>
+    
+    <!-- 5.2 الدوال المساعدة المشتركة (getSetting, timeAgo, truncateText...) -->
+    <script src="assets/js/utils.js"></script>
+    
+    <!-- 5.3 بناء الهيدر وإدارة التبويبات والبحث -->
+    <script src="assets/js/header.js"></script>
+    
+    <!-- 5.4 عرض المقالات والتفاعلات (إعجاب، تعليق، مشاركة) -->
+    <script src="assets/js/body.js"></script>
+    
+    <!-- 5.5 بناء الفوتر وإدارة التبويبات السفلية وبوابة الأدمن -->
+    <script src="assets/js/footer.js"></script>
+
+    <!-- ============================================================
+         6. بدء تشغيل الموقع بعد تحميل الصفحة
+         ============================================================ -->
+    <script>
+        /**
+         * عند اكتمال تحميل الصفحة، نقوم ببناء جميع الأجزاء
+         */
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 1. بناء الهيدر (الشعار، التبويبات، البحث، الوضع الليلي)
+                await buildHeader();
+                
+                // 2. تحميل المقالات (الدفعة الأولى)
+                await loadPosts(false);
+                
+                // 3. بناء الفوتر (تبويبات المقالات، حقوق النشر، بوابة الأدمن)
+                await buildFooter();
+                
+                // 4. تحديث عنوان الصفحة من الإعدادات
+                const siteName = await getSetting('siteName', 'ALSHANFRICC');
+                document.getElementById('page-title').textContent = siteName;
+                
+                console.log('✅ تم تحميل الموقع بنجاح - جميع الأجزاء جاهزة');
+                
+            } catch (error) {
+                console.error('❌ خطأ في تحميل الموقع:', error);
+            }
+        });
+        
+        /**
+         * معالجة فتح مقال محدد عبر الرابط (إذا كان في الـ URL باراميتر ?post=...)
+         */
+        function handlePostFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const postId = urlParams.get('post');
+            if (postId) {
+                // تمرير إلى المقال المحدد بعد تحميل الصفحة
+                setTimeout(() => {
+                    const postElement = document.getElementById(`post-${postId}`);
+                    if (postElement) {
+                        postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        postElement.style.boxShadow = '0 0 0 3px var(--primary)';
+                        setTimeout(() => {
+                            postElement.style.boxShadow = '';
+                        }, 3000);
+                    }
+                }, 2000);
+            }
+        }
+        
+        // استدعاء دالة فتح المقال من الرابط
+        handlePostFromUrl();
+    </script>
+
+</body>
+</html> 
