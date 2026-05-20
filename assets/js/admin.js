@@ -1,123 +1,94 @@
 // ============================================================
-//  ملف: admin.js (مُحدّث - كامل)
+//  ملف: admin.js (مُدمَج - كامل ومُحدّث)
 //  الوظيفة: إدارة لوحة التحكم وعمليات CRUD على جميع المجموعات
-//  يشمل: الهيدر، البدي، الفوتر، التبويبات، المنشورات (مع اختيار
-//         التبويبة والفرع والكاتب)، الكتّاب، المفاتيح
+//  يشمل: الهيدر (مع خلفية)، البدي، الفوتر، التبويبات،
+//         المنشورات (مع اختيار التبويبة والفرع والكاتب وأنواع
+//         المحتوى: اقتباس وملخص)، الكتّاب (مع صورة ونبذة)، المفاتيح
 //  يعتمد على: firebase-config.js, utils.js
 // ============================================================
 
-// ---------- 1. المتغيرات العامة ----------
 let adminCurrentSection = 'header';
 let isAdminLoggedIn = false;
-
-// خاصة بنافذة إضافة المنشور
 let postContentItems = [];
 let selectedCategoryId = null;
 let selectedSubcategoryId = null;
 
-// ---------- 2. التحقق من الجلسة عند التحميل ----------
+// ---------- 1. التحقق من الجلسة ----------
 document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('adminSession')) {
         auth.onAuthStateChanged(user => {
-            if (user) {
-                showAdminPanel(user);
-            } else {
-                showLoginScreen();
-            }
+            if (user) showAdminPanel(user);
+            else showLoginScreen();
         });
     } else {
         showLoginScreen();
     }
-
     const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
-
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
     setupSidebarEvents();
 });
 
-// ---------- 3. دوال الجلسة وتسجيل الدخول ----------
+// ---------- 2. الجلسة وتسجيل الدخول ----------
 function showLoginScreen() {
-    const loginScreen = document.getElementById('login-screen');
-    const adminScreen = document.getElementById('admin-screen');
-    if (loginScreen) loginScreen.style.display = 'flex';
-    if (adminScreen) adminScreen.style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('admin-screen').style.display = 'none';
     localStorage.removeItem('adminSession');
 }
-
 function showAdminPanel(user) {
-    const loginScreen = document.getElementById('login-screen');
-    const adminScreen = document.getElementById('admin-screen');
-    if (loginScreen) loginScreen.style.display = 'none';
-    if (adminScreen) adminScreen.style.display = 'flex';
-
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'flex';
     localStorage.setItem('adminSession', 'true');
     isAdminLoggedIn = true;
-
     console.log(`✅ تم تسجيل الدخول كـ: ${user.email}`);
     loadSection(adminCurrentSection);
 }
-
 async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value.trim();
-    const loginBtn = e.target.querySelector('button[type="submit"]');
-    if (!email || !password) return alert('يرجى إدخال البريد الإلكتروني وكلمة المرور');
-
-    loginBtn.disabled = true;
-    loginBtn.textContent = 'جاري الدخول...';
-
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (!email || !password) return alert('يرجى إدخال البريد وكلمة المرور');
+    btn.disabled = true; btn.textContent = 'جاري الدخول...';
     try {
         await auth.signInWithEmailAndPassword(email, password);
-    } catch (error) {
-        let errorMessage = 'حدث خطأ في تسجيل الدخول';
-        switch (error.code) {
-            case 'auth/invalid-email': errorMessage = 'صيغة البريد الإلكتروني غير صحيحة'; break;
-            case 'auth/user-not-found': errorMessage = 'لا يوجد مستخدم بهذا البريد الإلكتروني'; break;
-            case 'auth/wrong-password': errorMessage = 'كلمة المرور غير صحيحة'; break;
-            case 'auth/too-many-requests': errorMessage = 'محاولات كثيرة جداً. حاول مرة أخرى لاحقاً'; break;
+    } catch (err) {
+        let msg = 'حدث خطأ';
+        switch (err.code) {
+            case 'auth/invalid-email': msg = 'بريد غير صحيح'; break;
+            case 'auth/user-not-found': msg = 'لا يوجد مستخدم'; break;
+            case 'auth/wrong-password': msg = 'كلمة مرور خاطئة'; break;
+            case 'auth/too-many-requests': msg = 'محاولات كثيرة، حاول لاحقاً'; break;
         }
-        alert('❌ ' + errorMessage);
+        alert('❌ ' + msg);
     } finally {
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'دخول';
+        btn.disabled = false; btn.textContent = 'دخول';
     }
 }
-
 async function logoutAdmin() {
-    try { await auth.signOut(); } catch (error) {}
+    try { await auth.signOut(); } catch (e) {}
     localStorage.removeItem('adminSession');
-    isAdminLoggedIn = false;
     window.location.href = 'index.html';
 }
 
-// ---------- 4. إعداد الشريط الجانبي ----------
+// ---------- 3. الشريط الجانبي ----------
 function setupSidebarEvents() {
-    const sidebarItems = document.querySelectorAll('.admin-sidebar ul li');
-    sidebarItems.forEach(item => {
+    document.querySelectorAll('.admin-sidebar ul li').forEach(item => {
         item.addEventListener('click', () => {
-            const section = item.dataset.section;
-            if (section) {
-                sidebarItems.forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                loadSection(section);
-            }
+            document.querySelectorAll('.admin-sidebar ul li').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            loadSection(item.dataset.section);
         });
     });
-
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', logoutAdmin);
 }
 
-// ---------- 5. تحميل الأقسام ----------
+// ---------- 4. تحميل الأقسام ----------
 async function loadSection(section) {
     const panel = document.getElementById('content-panel');
     if (!panel) return;
     adminCurrentSection = section;
     panel.innerHTML = '<div class="loading-spinner">⏳ جاري تحميل القسم...</div>';
-
     try {
         switch (section) {
             case 'header': await loadHeaderSection(panel); break;
@@ -129,612 +100,340 @@ async function loadSection(section) {
             case 'keys': await loadKeysSection(panel); break;
             default: panel.innerHTML = '<p>القسم غير معروف</p>';
         }
-    } catch (error) {
-        console.error(`خطأ في تحميل قسم ${section}:`, error);
-        panel.innerHTML = '<p class="error-message">⚠️ حدث خطأ أثناء تحميل القسم</p>';
+    } catch (err) {
+        console.error(err);
+        panel.innerHTML = '<p class="error-message">⚠️ خطأ في التحميل</p>';
     }
 }
 
-// ---------- 6. قسم إدارة الهيدر ----------
+// ---------- 5. قسم الهيدر ----------
 async function loadHeaderSection(panel) {
-    const settings = await getAllSettingsCached();
-    const siteName = settings.siteName || 'ALSHANFRICC';
-    const titleFont = settings.titleFont || 'Playfair Display';
-    const bodyFont = settings.bodyFont || 'Cairo';
-    const primaryColor = settings.primaryColor || '#c48b4c';
-    const darkMode = settings.darkMode || false;
-
-    const fontsOptions = AVAILABLE_FONTS.map(f =>
-        `<option value="${f.name}" ${titleFont === f.name ? 'selected' : ''}>${f.name} (${f.type})</option>`
-    ).join('');
-
-    const bodyFontsOptions = AVAILABLE_FONTS.map(f =>
-        `<option value="${f.name}" ${bodyFont === f.name ? 'selected' : ''}>${f.name} (${f.type})</option>`
-    ).join('');
-
+    const s = await getAllSettingsCached();
     panel.innerHTML = `
         <h2>إدارة الهيدر</h2>
         <div class="card">
-            <div class="form-group">
-                <label>اسم الموقع</label>
-                <input type="text" id="header-site-name" class="form-control" value="${siteName}">
+            <div class="form-group"><label>اسم الموقع</label><input type="text" id="h-name" class="form-control" value="${s.siteName||'ALSHANFRICC'}"></div>
+            <div class="form-group"><label>خط العنوان</label><select id="h-titlefont" class="form-control">${AVAILABLE_FONTS.map(f=>`<option value="${f.name}" ${s.titleFont===f.name?'selected':''}>${f.name} (${f.type})</option>`).join('')}</select></div>
+            <div class="form-group"><label>خط النص</label><select id="h-bodyfont" class="form-control">${AVAILABLE_FONTS.map(f=>`<option value="${f.name}" ${s.bodyFont===f.name?'selected':''}>${f.name} (${f.type})</option>`).join('')}</select></div>
+            <div class="form-group"><label>اللون الأساسي</label><input type="color" id="h-color" class="form-control" value="${s.primaryColor||'#c48b4c'}"></div>
+            <div class="form-group"><label>خلفية الهيدر (رابط)</label><input type="text" id="h-bg" class="form-control" placeholder="رابط صورة" value="${s.headerBgImage||''}">
+                <input type="file" id="h-bg-upload" accept="image/*" style="display:none" onchange="handleHeaderBgUpload(event)">
+                <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="document.getElementById('h-bg-upload').click()">📷 رفع</button>
+                <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="document.getElementById('h-bg').value='';document.getElementById('h-bg-preview').innerHTML=''">🗑️ إزالة</button>
+                <div id="h-bg-preview" style="margin-top:10px">${s.headerBgImage?`<img src="${s.headerBgImage}" style="max-width:200px;border-radius:8px">`:''}</div>
             </div>
-            <div class="form-group">
-                <label>خط العنوان (الشعار والعناوين)</label>
-                <select id="title-font" class="form-control">${fontsOptions}</select>
-            </div>
-            <div class="form-group">
-                <label>خط النص (المحتوى العام)</label>
-                <select id="body-font" class="form-control">${bodyFontsOptions}</select>
-            </div>
-            <div class="form-group">
-                <label>اللون الأساسي</label>
-                <input type="color" id="header-color" class="form-control" value="${primaryColor}">
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="header-darkmode" ${darkMode ? 'checked' : ''}> تفعيل الوضع الليلي افتراضياً</label>
-            </div>
-            <button class="btn btn-primary" onclick="saveHeaderSettings()">💾 حفظ إعدادات الهيدر</button>
-        </div>
-    `;
-}
-
-async function saveHeaderSettings() {
-    await updateSetting('siteName', document.getElementById('header-site-name').value);
-    await updateSetting('titleFont', document.getElementById('title-font').value);
-    await updateSetting('bodyFont', document.getElementById('body-font').value);
-    await updateSetting('primaryColor', document.getElementById('header-color').value);
-    await updateSetting('darkMode', document.getElementById('header-darkmode').checked);
-    alert('✅ تم حفظ إعدادات الهيدر بنجاح');
-}
-
-// ---------- 7. قسم إدارة البدي ----------
-async function loadBodySection(panel) {
-    const bodyBg = await getSetting('bodyBackground', '#f0f2f5');
-    panel.innerHTML = `
-        <h2>إدارة البدي</h2>
-        <div class="card">
-            <div class="form-group">
-                <label>لون خلفية المحتوى</label>
-                <input type="color" id="body-bg" class="form-control" value="${bodyBg}">
-            </div>
-            <button class="btn btn-primary" onclick="saveBodySettings()">💾 حفظ</button>
+            <div class="form-group"><label><input type="checkbox" id="h-dark" ${s.darkMode?'checked':''}> الوضع الليلي افتراضي</label></div>
+            <button class="btn btn-primary" onclick="saveHeader()">💾 حفظ</button>
         </div>`;
 }
-
-async function saveBodySettings() {
-    await updateSetting('bodyBackground', document.getElementById('body-bg').value);
+function handleHeaderBgUpload(e) {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+        document.getElementById('h-bg').value = ev.target.result;
+        document.getElementById('h-bg-preview').innerHTML = `<img src="${ev.target.result}" style="max-width:200px;border-radius:8px">`;
+    };
+    r.readAsDataURL(f);
+}
+async function saveHeader() {
+    await updateSetting('siteName', document.getElementById('h-name').value);
+    await updateSetting('titleFont', document.getElementById('h-titlefont').value);
+    await updateSetting('bodyFont', document.getElementById('h-bodyfont').value);
+    await updateSetting('primaryColor', document.getElementById('h-color').value);
+    await updateSetting('headerBgImage', document.getElementById('h-bg').value);
+    await updateSetting('darkMode', document.getElementById('h-dark').checked);
     alert('✅ تم الحفظ');
 }
 
-// ---------- 8. قسم إدارة الفوتر ----------
+// ---------- 6. البدي والفوتر ----------
+async function loadBodySection(panel) {
+    const bg = await getSetting('bodyBackground','#f0f2f5');
+    panel.innerHTML = `<h2>إدارة البدي</h2><div class="card"><div class="form-group"><label>لون الخلفية</label><input type="color" id="b-bg" class="form-control" value="${bg}"></div><button class="btn btn-primary" onclick="saveBody()">💾 حفظ</button></div>`;
+}
+async function saveBody() { await updateSetting('bodyBackground', document.getElementById('b-bg').value); alert('✅ تم الحفظ'); }
+
 async function loadFooterSection(panel) {
-    const settings = await getAllSettingsCached();
-    const footerText = settings.footerText || 'جميع الحقوق محفوظة';
-    const fb = settings.facebookUrl || '#';
-    const tw = settings.twitterUrl || '#';
-    const ig = settings.instagramUrl || '';
-
-    panel.innerHTML = `
-        <h2>إدارة الفوتر</h2>
-        <div class="card">
-            <div class="form-group"><label>نص الحقوق</label><input type="text" id="footer-text" class="form-control" value="${footerText}"></div>
-            <div class="form-group"><label>فيسبوك</label><input type="url" id="footer-fb" class="form-control" value="${fb}"></div>
-            <div class="form-group"><label>تويتر</label><input type="url" id="footer-tw" class="form-control" value="${tw}"></div>
-            <div class="form-group"><label>انستغرام</label><input type="url" id="footer-ig" class="form-control" value="${ig}"></div>
-            <button class="btn btn-primary" onclick="saveFooterSettings()">💾 حفظ</button>
-        </div>`;
+    const s = await getAllSettingsCached();
+    panel.innerHTML = `<h2>إدارة الفوتر</h2><div class="card">
+        <div class="form-group"><label>نص الحقوق</label><input type="text" id="f-text" class="form-control" value="${s.footerText||'جميع الحقوق محفوظة'}"></div>
+        <div class="form-group"><label>فيسبوك</label><input type="url" id="f-fb" class="form-control" value="${s.facebookUrl||'#'}"></div>
+        <div class="form-group"><label>تويتر</label><input type="url" id="f-tw" class="form-control" value="${s.twitterUrl||'#'}"></div>
+        <div class="form-group"><label>انستغرام</label><input type="url" id="f-ig" class="form-control" value="${s.instagramUrl||'#'}"></div>
+        <button class="btn btn-primary" onclick="saveFooter()">💾 حفظ</button></div>`;
+}
+async function saveFooter() {
+    await updateSetting('footerText', document.getElementById('f-text').value);
+    await updateSetting('facebookUrl', document.getElementById('f-fb').value);
+    await updateSetting('twitterUrl', document.getElementById('f-tw').value);
+    await updateSetting('instagramUrl', document.getElementById('f-ig').value);
+    alert('✅ تم الحفظ');
 }
 
-async function saveFooterSettings() {
-    await updateSetting('footerText', document.getElementById('footer-text').value);
-    await updateSetting('facebookUrl', document.getElementById('footer-fb').value);
-    await updateSetting('twitterUrl', document.getElementById('footer-tw').value);
-    await updateSetting('instagramUrl', document.getElementById('footer-ig').value);
-    alert('✅ تم حفظ إعدادات الفوتر');
-}
-
-// ---------- 9. التبويبات والفروع ----------
+// ---------- 7. التبويبات ----------
 async function loadCategoriesSection(panel) {
-    panel.innerHTML = `
-        <h2>إدارة التبويبات</h2>
-        <div class="card">
-            <input type="text" id="cat-name" class="form-control" placeholder="اسم التبويبة">
-            <input type="text" id="cat-icon" class="form-control" placeholder="الأيقونة (إيموجي)">
-            <button class="btn btn-primary" onclick="addCategory()">➕ إضافة</button>
-        </div>
-        <div id="categories-list" class="card"><div id="categories-container">⏳</div></div>`;
-    await renderCategories();
+    panel.innerHTML = `<h2>التبويبات</h2><div class="card"><input type="text" id="c-name" class="form-control" placeholder="اسم"><input type="text" id="c-icon" class="form-control" placeholder="أيقونة"><button class="btn btn-primary" onclick="addCat()">➕ إضافة</button></div><div id="cat-list" class="card"><div id="cat-container">⏳</div></div>`;
+    await renderCats();
 }
-
-async function addCategory() {
-    const name = document.getElementById('cat-name').value.trim();
-    const icon = document.getElementById('cat-icon').value.trim();
-    if (!name) return alert('أدخل الاسم');
-    const snapshot = await db.collection('categories').orderBy('order', 'desc').limit(1).get();
-    let maxOrder = 0;
-    snapshot.forEach(doc => maxOrder = doc.data().order || 0);
-    await db.collection('categories').add({ name, icon: icon || '📌', order: maxOrder + 1, subcategories: [] });
-    document.getElementById('cat-name').value = '';
-    document.getElementById('cat-icon').value = '';
-    await renderCategories();
+async function addCat() {
+    const n = document.getElementById('c-name').value.trim(), ic = document.getElementById('c-icon').value.trim();
+    if (!n) return alert('أدخل اسماً');
+    const snap = await db.collection('categories').orderBy('order','desc').limit(1).get();
+    let o = 0; snap.forEach(d => o = d.data().order||0);
+    await db.collection('categories').add({ name:n, icon:ic||'📌', order:o+1, subcategories:[] });
+    document.getElementById('c-name').value = ''; document.getElementById('c-icon').value = '';
+    await renderCats();
 }
-
-async function deleteCategory(catId) {
-    if (!confirm('حذف التبويبة؟')) return;
-    await db.collection('categories').doc(catId).delete();
-    await renderCategories();
-}
-
-async function addSubcategory(catId) {
-    const name = prompt('اسم الفرع:');
-    if (!name) return;
-    const catRef = db.collection('categories').doc(catId);
-    const doc = await catRef.get();
-    if (doc.exists) {
-        const data = doc.data();
-        const subs = data.subcategories || [];
-        subs.push({ id: generateId(), name });
-        await catRef.update({ subcategories: subs });
-        await renderCategories();
+async function deleteCat(id) { if (confirm('حذف؟')) { await db.collection('categories').doc(id).delete(); await renderCats(); } }
+async function addSub(catId) {
+    const n = prompt('اسم الفرع:'); if (!n) return;
+    const ref = db.collection('categories').doc(catId); const d = await ref.get();
+    if (d.exists) {
+        const subs = d.data().subcategories || [];
+        subs.push({ id: generateId(), name: n });
+        await ref.update({ subcategories: subs }); await renderCats();
     }
 }
-
-async function deleteSubcategory(catId, subId) {
+async function delSub(catId, subId) {
     if (!confirm('حذف الفرع؟')) return;
-    const catRef = db.collection('categories').doc(catId);
-    const doc = await catRef.get();
-    if (doc.exists) {
-        const subs = (doc.data().subcategories || []).filter(s => s.id !== subId);
-        await catRef.update({ subcategories: subs });
-        await renderCategories();
+    const ref = db.collection('categories').doc(catId); const d = await ref.get();
+    if (d.exists) {
+        const subs = (d.data().subcategories||[]).filter(s => s.id !== subId);
+        await ref.update({ subcategories: subs }); await renderCats();
     }
 }
-
-async function renderCategories() {
-    const container = document.getElementById('categories-container');
-    if (!container) return;
-    const snapshot = await db.collection('categories').orderBy('order').get();
-    if (snapshot.empty) { container.innerHTML = '<p>لا توجد تبويبات</p>'; return; }
-    let html = '';
-    snapshot.forEach(doc => {
+async function renderCats() {
+    const c = document.getElementById('cat-container'); if (!c) return;
+    const snap = await db.collection('categories').orderBy('order').get();
+    if (snap.empty) { c.innerHTML = '<p>لا توجد تبويبات</p>'; return; }
+    let h = '';
+    snap.forEach(doc => {
         const cat = doc.data();
-        html += `<div class="list-item">
-            <div class="item-info"><span class="item-title">${cat.icon} ${cat.name}</span>
-            <div class="item-meta">فروع: ${(cat.subcategories||[]).map(s=>s.name).join('، ')||'لا يوجد'}</div></div>
-            <div class="item-actions">
-                <button class="btn btn-sm btn-outline" onclick="addSubcategory('${doc.id}')">➕ فرع</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteCategory('${doc.id}')">🗑️</button>
-            </div></div>`;
-        if (cat.subcategories) cat.subcategories.forEach(sub => {
-            html += `<div class="list-item" style="padding-right:40px;background:#f9f9f9">
-                <span>↳ ${sub.name}</span>
-                <button class="btn btn-sm btn-danger" onclick="deleteSubcategory('${doc.id}','${sub.id}')">🗑️</button></div>`;
+        h += `<div class="list-item"><div class="item-info"><span class="item-title">${cat.icon} ${cat.name}</span><div class="item-meta">فروع: ${(cat.subcategories||[]).map(s=>s.name).join('، ')||'لا يوجد'}</div></div><div class="item-actions"><button class="btn btn-sm btn-outline" onclick="addSub('${doc.id}')">➕ فرع</button><button class="btn btn-sm btn-danger" onclick="deleteCat('${doc.id}')">🗑️</button></div></div>`;
+        (cat.subcategories||[]).forEach(sub => {
+            h += `<div class="list-item" style="padding-right:40px;background:#f9f9f9"><span>↳ ${sub.name}</span><button class="btn btn-sm btn-danger" onclick="delSub('${doc.id}','${sub.id}')">🗑️</button></div>`;
         });
     });
-    container.innerHTML = html;
+    c.innerHTML = h;
 }
 
-// ---------- 10. المنشورات (مع نافذة الإضافة المطورة) ----------
+// ---------- 8. المنشورات (مع النافذة الكاملة) ----------
 async function loadPostsSection(panel) {
-    panel.innerHTML = `
-        <h2>إدارة المنشورات</h2>
-        <button class="btn btn-primary" onclick="showAddPostForm()">➕ إضافة منشور جديد</button>
-        <div id="posts-list" class="card" style="margin-top:20px;">
-            <h3>المنشورات الحالية</h3>
-            <div id="posts-container">⏳ جاري التحميل...</div>
-        </div>`;
-    await renderPostsList();
+    panel.innerHTML = `<h2>المنشورات</h2><button class="btn btn-primary" onclick="showAddForm()">➕ إضافة</button><div id="posts-list" class="card" style="margin-top:20px"><h3>المنشورات الحالية</h3><div id="posts-container">⏳</div></div>`;
+    await renderPosts();
 }
-
-// ---- دوال نافذة إضافة المنشور ----
-async function showAddPostForm() {
+async function showAddForm() {
     postContentItems = [];
-    selectedCategoryId = null;
-    selectedSubcategoryId = null;
+    const catsSnap = await db.collection('categories').orderBy('order').get();
+    let catOpts = '<option value="">-- اختر التبويبة --</option>';
+    catsSnap.forEach(d => catOpts += `<option value="${d.id}">${d.data().icon||'📌'} ${d.data().name}</option>`);
+    const authSnap = await db.collection('authors').orderBy('name').get();
+    let authOpts = '<option value="">-- اختر الكاتب (اختياري) --</option>';
+    authSnap.forEach(d => authOpts += `<option value="${d.id}">${d.data().name}</option>`);
 
-    // جلب التبويبات
-    const catsSnapshot = await db.collection('categories').orderBy('order').get();
-    let catOptions = '<option value="">-- اختر التبويبة --</option>';
-    catsSnapshot.forEach(doc => {
-        const cat = doc.data();
-        catOptions += `<option value="${doc.id}">${cat.icon || '📌'} ${cat.name}</option>`;
-    });
-
-    // جلب الكتّاب
-    const authorsSnapshot = await db.collection('authors').orderBy('name').get();
-    let authorOptions = '<option value="">-- اختر الكاتب (اختياري) --</option>';
-    authorsSnapshot.forEach(doc => {
-        const author = doc.data();
-        authorOptions += `<option value="${doc.id}">${author.name}</option>`;
-    });
-
-    const modalHTML = `
-    <div id="addPostModal" class="modal-overlay">
-      <div class="modal-content">
-        <button class="modal-close" onclick="closeAddPostModal()">✕</button>
-        <h3>إضافة منشور جديد</h3>
-
-        <div class="form-group">
-          <label>العنوان الرئيسي</label>
-          <input type="text" id="postMainTitle" class="form-control" placeholder="أدخل عنوان المنشور">
+    document.body.insertAdjacentHTML('beforeend', `
+    <div id="addModal" class="modal-overlay"><div class="modal-content">
+        <button class="modal-close" onclick="closeAdd()">✕</button><h3>إضافة منشور</h3>
+        <div class="form-group"><label>العنوان</label><input type="text" id="p-title" class="form-control"></div>
+        <div class="form-group"><label>التبويبة</label><select id="p-cat" class="form-control" onchange="onCatCh()">${catOpts}</select></div>
+        <div class="form-group" id="subGroup" style="display:none"><label>الفرع</label><select id="p-sub" class="form-control"><option value="">الكل</option></select></div>
+        <div class="form-group"><label>الكاتب</label><select id="p-author" class="form-control">${authOpts}</select></div>
+        <div class="admin-tabs" id="ctabs">
+            <button class="admin-tab active" data-type="subtitle">عنوان فرعي</button>
+            <button class="admin-tab" data-type="images">صور</button>
+            <button class="admin-tab" data-type="code">كود</button>
+            <button class="admin-tab" data-type="link">رابط</button>
+            <button class="admin-tab" data-type="markdown">Markdown</button>
+            <button class="admin-tab" data-type="html">HTML</button>
+            <button class="admin-tab" data-type="quote">💬 اقتباس</button>
+            <button class="admin-tab" data-type="summary">📋 ملخص</button>
         </div>
-
-        <div class="form-group">
-          <label>التبويبة</label>
-          <select id="postCategory" class="form-control" onchange="onCategoryChange()">
-            ${catOptions}
-          </select>
-        </div>
-
-        <div class="form-group" id="subcategoryGroup" style="display:none;">
-          <label>الفرع</label>
-          <select id="postSubcategory" class="form-control">
-            <option value="">الكل</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>الكاتب</label>
-          <select id="postAuthor" class="form-control">
-            ${authorOptions}
-          </select>
-        </div>
-
-        <div class="admin-tabs" id="contentTypeTabs">
-          <button class="admin-tab active" data-type="subtitle">عنوان فرعي</button>
-          <button class="admin-tab" data-type="images">صور</button>
-          <button class="admin-tab" data-type="code">كود</button>
-          <button class="admin-tab" data-type="link">رابط</button>
-          <button class="admin-tab" data-type="markdown">مقال (Markdown)</button>
-          <button class="admin-tab" data-type="html">مقال (HTML)</button>
-        </div>
-
-        <div id="contentInputArea" class="content-input-area"></div>
-        <button class="btn btn-primary" id="addContentItemBtn">➕ أضف إلى المحتوى</button>
-
-        <div class="added-items-list">
-          <h4>العناصر المضافة:</h4>
-          <div id="addedItemsContainer"></div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn btn-primary" onclick="saveNewPost()">💾 نشر المنشور</button>
-          <button class="btn btn-outline" onclick="closeAddPostModal()">إلغاء</button>
-        </div>
-      </div>
-    </div>`;
-
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    switchContentType('subtitle');
-    setupContentTabs();
-}
-
-function closeAddPostModal() {
-    const modal = document.getElementById('addPostModal');
-    if (modal) modal.remove();
-}
-
-async function onCategoryChange() {
-    const catId = document.getElementById('postCategory').value;
-    selectedCategoryId = catId || null;
-    selectedSubcategoryId = null;
-
-    const subGroup = document.getElementById('subcategoryGroup');
-    const subSelect = document.getElementById('postSubcategory');
-
-    if (!catId) {
-        subGroup.style.display = 'none';
-        return;
-    }
-
-    const catDoc = await db.collection('categories').doc(catId).get();
-    if (!catDoc.exists) {
-        subGroup.style.display = 'none';
-        return;
-    }
-
-    const cat = catDoc.data();
-    const subs = cat.subcategories || [];
-    if (subs.length === 0) {
-        subGroup.style.display = 'none';
-        return;
-    }
-
-    subSelect.innerHTML = '<option value="">الكل</option>';
-    subs.forEach(sub => {
-        subSelect.innerHTML += `<option value="${sub.id}">${sub.name}</option>`;
-    });
-    subGroup.style.display = 'block';
-}
-
-function setupContentTabs() {
-    document.querySelectorAll('#contentTypeTabs .admin-tab').forEach(tab => {
+        <div id="inputArea" class="content-input-area"></div>
+        <button class="btn btn-primary" id="addItemBtn">➕ أضف للمحتوى</button>
+        <div class="added-items-list"><h4>العناصر:</h4><div id="addedItems"></div></div>
+        <div class="modal-footer"><button class="btn btn-primary" onclick="savePost()">💾 نشر</button><button class="btn btn-outline" onclick="closeAdd()">إلغاء</button></div>
+    </div></div>`);
+    switchType('subtitle');
+    document.querySelectorAll('#ctabs .admin-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('#contentTypeTabs .admin-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            switchContentType(tab.dataset.type);
+            document.querySelectorAll('#ctabs .admin-tab').forEach(t=>t.classList.remove('active'));
+            tab.classList.add('active'); switchType(tab.dataset.type);
         });
     });
-
-    document.getElementById('addContentItemBtn').addEventListener('click', () => {
-        const activeTab = document.querySelector('#contentTypeTabs .admin-tab.active');
-        if (activeTab) addContentItem(activeTab.dataset.type);
+    document.getElementById('addItemBtn').addEventListener('click', () => {
+        const act = document.querySelector('#ctabs .admin-tab.active');
+        if (act) addItem(act.dataset.type);
     });
 }
-
-function switchContentType(type) {
-    const area = document.getElementById('contentInputArea');
-    switch (type) {
-        case 'subtitle':
-            area.innerHTML = `<input type="text" id="subtitleInput" class="form-control" placeholder="أدخل عنواناً فرعياً">`;
-            break;
-        case 'images':
-            area.innerHTML = `
-                <input type="file" id="imageFiles" class="form-control" multiple accept="image/*" style="display:none" onchange="handleImageSelect(event)">
-                <button class="btn btn-outline" onclick="document.getElementById('imageFiles').click()">اختر صوراً</button>
-                <div id="imagePreview" class="file-preview"></div>`;
-            break;
-        case 'code':
-            area.innerHTML = `
-                <select id="codeLanguage" class="form-control">
-                    <option value="html">HTML</option><option value="python">Python</option>
-                    <option value="php">PHP</option><option value="javascript">JavaScript</option>
-                    <option value="ruby">Ruby</option><option value="css">CSS</option>
-                </select>
-                <textarea id="codeContent" class="form-control editor-content" placeholder="أدخل الكود..."></textarea>`;
-            break;
-        case 'link':
-            area.innerHTML = `
-                <input type="text" id="linkUrl" class="form-control" placeholder="https://example.com">
-                <input type="text" id="linkText" class="form-control" placeholder="نص الرابط (اختياري)">`;
-            break;
-        case 'markdown':
-            area.innerHTML = `<textarea id="markdownContent" class="form-control editor-content" placeholder="أدخل مقال Markdown..."></textarea>`;
-            break;
-        case 'html':
-            area.innerHTML = `<textarea id="htmlContent" class="form-control editor-content" placeholder="أدخل كود HTML..."></textarea>`;
-            break;
+function closeAdd() { const m = document.getElementById('addModal'); if (m) m.remove(); }
+async function onCatCh() {
+    const id = document.getElementById('p-cat').value;
+    const g = document.getElementById('subGroup'), s = document.getElementById('p-sub');
+    if (!id) { g.style.display = 'none'; return; }
+    const d = await db.collection('categories').doc(id).get();
+    if (!d.exists || !(d.data().subcategories||[]).length) { g.style.display = 'none'; return; }
+    s.innerHTML = '<option value="">الكل</option>';
+    d.data().subcategories.forEach(sub => s.innerHTML += `<option value="${sub.id}">${sub.name}</option>`);
+    g.style.display = 'block';
+}
+function switchType(t) {
+    const a = document.getElementById('inputArea');
+    switch (t) {
+        case 'subtitle': a.innerHTML = '<input type="text" id="inp" class="form-control" placeholder="عنوان فرعي">'; break;
+        case 'images': a.innerHTML = '<input type="file" id="imgFiles" class="form-control" multiple accept="image/*" style="display:none" onchange="imgSel(event)"><button class="btn btn-outline" onclick="document.getElementById(\'imgFiles\').click()">اختر صوراً</button><div id="imgPrev" class="file-preview"></div>'; break;
+        case 'code': a.innerHTML = '<select id="codeLang" class="form-control"><option value="html">HTML</option><option value="python">Python</option><option value="php">PHP</option><option value="javascript">JavaScript</option><option value="ruby">Ruby</option><option value="css">CSS</option></select><textarea id="codeVal" class="form-control editor-content" placeholder="الكود..."></textarea>'; break;
+        case 'link': a.innerHTML = '<input type="text" id="linkUrl" class="form-control" placeholder="رابط"><input type="text" id="linkTxt" class="form-control" placeholder="نص الرابط">'; break;
+        case 'markdown': a.innerHTML = '<textarea id="mdVal" class="form-control editor-content" placeholder="Markdown..."></textarea>'; break;
+        case 'html': a.innerHTML = '<textarea id="htmlVal" class="form-control editor-content" placeholder="HTML..."></textarea>'; break;
+        case 'quote': a.innerHTML = '<textarea id="quoteText" class="form-control editor-content" placeholder="نص الاقتباس"></textarea><input type="text" id="quoteAuth" class="form-control" placeholder="صاحب الاقتباس (اختياري)" style="margin-top:8px">'; break;
+        case 'summary': a.innerHTML = '<textarea id="summaryText" class="form-control editor-content" placeholder="ملخص المقال"></textarea>'; break;
     }
 }
-
-function handleImageSelect(event) {
-    const files = event.target.files;
-    const preview = document.getElementById('imagePreview');
-    preview.innerHTML = '';
-    for (let i = 0; i < files.length; i++) {
-        const reader = new FileReader();
-        reader.onload = e => preview.innerHTML += `<img src="${e.target.result}" style="width:80px;height:80px;object-fit:cover;margin:4px;">`;
-        reader.readAsDataURL(files[i]);
-    }
+function imgSel(e) {
+    const prev = document.getElementById('imgPrev'); prev.innerHTML = '';
+    Array.from(e.target.files).forEach(f => {
+        const r = new FileReader();
+        r.onload = ev => prev.innerHTML += `<img src="${ev.target.result}" style="width:80px;height:80px;object-fit:cover;margin:4px">`;
+        r.readAsDataURL(f);
+    });
 }
-
-function addContentItem(type) {
+function addItem(type) {
     let item = { type };
     switch (type) {
-        case 'subtitle':
-            const subVal = document.getElementById('subtitleInput').value.trim();
-            if (!subVal) return alert('أدخل العنوان الفرعي');
-            item.value = subVal;
-            break;
-        case 'images':
-            const files = document.getElementById('imageFiles').files;
-            if (files.length === 0) return alert('اختر صورة');
-            const promises = Array.from(files).map(file => new Promise(resolve => {
-                const reader = new FileReader();
-                reader.onload = e => resolve({ dataUrl: e.target.result, name: file.name });
-                reader.readAsDataURL(file);
-            }));
-            Promise.all(promises).then(images => {
-                item.images = images;
-                postContentItems.push(item);
-                renderAddedItems();
-                document.getElementById('imageFiles').value = '';
-                document.getElementById('imagePreview').innerHTML = '';
-            });
-            return; // منع الإضافة المباشرة
-        case 'code':
-            const lang = document.getElementById('codeLanguage').value;
-            const codeVal = document.getElementById('codeContent').value.trim();
-            if (!codeVal) return alert('أدخل الكود');
-            item.language = lang;
-            item.value = codeVal;
-            break;
-        case 'link':
-            const url = document.getElementById('linkUrl').value.trim();
-            if (!url) return alert('أدخل الرابط');
-            item.url = url;
-            item.text = document.getElementById('linkText').value.trim() || url;
-            break;
-        case 'markdown':
-            const mdVal = document.getElementById('markdownContent').value.trim();
-            if (!mdVal) return alert('أدخل مقال Markdown');
-            item.value = mdVal;
-            break;
-        case 'html':
-            const htmlVal = document.getElementById('htmlContent').value.trim();
-            if (!htmlVal) return alert('أدخل كود HTML');
-            item.value = htmlVal;
-            break;
+        case 'subtitle': const sv = document.getElementById('inp')?.value.trim(); if (!sv) return alert('أدخل عنواناً'); item.value = sv; break;
+        case 'images': const files = document.getElementById('imgFiles')?.files; if (!files||!files.length) return alert('اختر صوراً');
+            const proms = Array.from(files).map(f => new Promise(res => { const r = new FileReader(); r.onload = e => res({dataUrl:e.target.result,name:f.name}); r.readAsDataURL(f); }));
+            Promise.all(proms).then(imgs => { item.images = imgs; postContentItems.push(item); renderAdded(); document.getElementById('imgFiles').value=''; document.getElementById('imgPrev').innerHTML=''; }); return;
+        case 'code': const lang = document.getElementById('codeLang')?.value, cv = document.getElementById('codeVal')?.value.trim(); if (!cv) return alert('أدخل كوداً'); item.language=lang; item.value=cv; break;
+        case 'link': const url = document.getElementById('linkUrl')?.value.trim(); if (!url) return alert('أدخل رابطاً'); item.url=url; item.text=document.getElementById('linkTxt')?.value.trim()||url; break;
+        case 'markdown': const mv = document.getElementById('mdVal')?.value.trim(); if (!mv) return alert('أدخل نصاً'); item.value=mv; break;
+        case 'html': const hv = document.getElementById('htmlVal')?.value.trim(); if (!hv) return alert('أدخل HTML'); item.value=hv; break;
+        case 'quote': const qv = document.getElementById('quoteText')?.value.trim(); if (!qv) return alert('أدخل الاقتباس'); item.value=qv; item.author=document.getElementById('quoteAuth')?.value.trim()||''; break;
+        case 'summary': const smv = document.getElementById('summaryText')?.value.trim(); if (!smv) return alert('أدخل الملخص'); item.value=smv; break;
     }
-    postContentItems.push(item);
-    renderAddedItems();
-    switchContentType(type);
+    postContentItems.push(item); renderAdded(); switchType(type);
 }
-
-function renderAddedItems() {
-    const container = document.getElementById('addedItemsContainer');
-    container.innerHTML = postContentItems.map((item, i) => {
-        let desc = '';
-        switch (item.type) {
-            case 'subtitle': desc = `عنوان فرعي: ${item.value}`; break;
-            case 'images': desc = `${item.images.length} صورة`; break;
-            case 'code': desc = `كود ${item.language}`; break;
-            case 'link': desc = `رابط: ${item.text}`; break;
-            case 'markdown': desc = 'مقال Markdown'; break;
-            case 'html': desc = 'مقال HTML'; break;
+function renderAdded() {
+    const c = document.getElementById('addedItems'); if (!c) return;
+    c.innerHTML = postContentItems.map((it,i) => {
+        let d = ''; switch(it.type) {
+            case 'subtitle': d='عنوان فرعي: '+it.value; break;
+            case 'images': d=(it.images?.length||0)+' صورة'; break;
+            case 'code': d='كود '+it.language; break;
+            case 'link': d='رابط: '+it.text; break;
+            case 'markdown': d='Markdown'; break;
+            case 'html': d='HTML'; break;
+            case 'quote': d='💬 اقتباس'; break;
+            case 'summary': d='📋 ملخص'; break;
         }
-        return `<div class="list-item"><span>${desc}</span><button class="btn btn-sm btn-danger" onclick="removeContentItem(${i})">🗑️</button></div>`;
+        return `<div class="list-item"><span>${d}</span><button class="btn btn-sm btn-danger" onclick="remItem(${i})">🗑️</button></div>`;
     }).join('');
 }
+function remItem(i) { postContentItems.splice(i,1); renderAdded(); }
+async function savePost() {
+    const title = document.getElementById('p-title')?.value.trim();
+    if (!title) return alert('أدخل العنوان');
+    const catId = document.getElementById('p-cat')?.value;
+    if (!catId) return alert('اختر التبويبة');
+    const subId = (document.getElementById('subGroup')?.style.display !== 'none') ? (document.getElementById('p-sub')?.value||null) : null;
+    if (!postContentItems.length) return alert('أضف عنصراً واحداً على الأقل');
 
-function removeContentItem(index) {
-    postContentItems.splice(index, 1);
-    renderAddedItems();
-}
+    let catName='', subName='';
+    const catDoc = await db.collection('categories').doc(catId).get();
+    if (catDoc.exists) { catName = catDoc.data().name; if (subId) { const s = (catDoc.data().subcategories||[]).find(x=>x.id===subId); if (s) subName=s.name; } }
 
-async function saveNewPost() {
-    const mainTitle = document.getElementById('postMainTitle').value.trim();
-    if (!mainTitle) return alert('أدخل العنوان الرئيسي');
-
-    const catSelect = document.getElementById('postCategory');
-    const subSelect = document.getElementById('postSubcategory');
-    const categoryId = catSelect?.value || null;
-    const subcategoryId = (subSelect && subSelect.style.display !== 'none') ? (subSelect.value || null) : null;
-
-    if (!categoryId) return alert('اختر التبويبة');
-    if (postContentItems.length === 0) return alert('أضف عنصراً واحداً على الأقل');
-
-    // جلب اسم التبويبة والفرع
-    let categoryName = '';
-    let subcategoryName = '';
-    if (categoryId) {
-        const catDoc = await db.collection('categories').doc(categoryId).get();
-        if (catDoc.exists) {
-            categoryName = catDoc.data().name;
-            if (subcategoryId) {
-                const subs = catDoc.data().subcategories || [];
-                const sub = subs.find(s => s.id === subcategoryId);
-                if (sub) subcategoryName = sub.name;
-            }
-        }
-    }
-
-    // جلب اسم الكاتب
-    let authorName = 'مجهول';
-    let authorId = null;
-    const authorSelect = document.getElementById('postAuthor');
-    if (authorSelect && authorSelect.value) {
-        authorId = authorSelect.value;
-        const authorDoc = await db.collection('authors').doc(authorId).get();
-        if (authorDoc.exists) authorName = authorDoc.data().name;
+    let authorName='مجهول', authorId=null;
+    const authSel = document.getElementById('p-author');
+    if (authSel?.value) {
+        authorId = authSel.value;
+        const aDoc = await db.collection('authors').doc(authorId).get();
+        if (aDoc.exists) authorName = aDoc.data().name;
     }
 
     await db.collection('posts').add({
-        title: mainTitle,
-        content: postContentItems,
-        author: authorName,
-        authorId: authorId,
-        category: categoryId,
-        subcategory: subcategoryId,
-        categoryName: categoryName,
-        subcategoryName: subcategoryName,
-        date: new Date().toISOString(),
-        likes: 0,
-        likedBy: [],
-        comments: [],
-        views: 0
+        title, content: postContentItems, author: authorName, authorId,
+        category: catId, subcategory: subId, categoryName: catName, subcategoryName: subName,
+        date: new Date().toISOString(), likes:0, likedBy:[], comments:[], views:0
     });
-
-    closeAddPostModal();
-    await renderPostsList();
-    alert('✅ تم نشر المنشور');
+    closeAdd(); await renderPosts(); alert('✅ تم النشر');
+}
+async function deletePost(id) { if (confirm('حذف؟')) { await db.collection('posts').doc(id).delete(); await renderPosts(); } }
+async function renderPosts() {
+    const c = document.getElementById('posts-container'); if (!c) return;
+    const snap = await db.collection('posts').orderBy('date','desc').limit(30).get();
+    if (snap.empty) { c.innerHTML='<p>لا توجد منشورات</p>'; return; }
+    c.innerHTML = snap.docs.map(d => {
+        const p = d.data();
+        return `<div class="list-item"><div class="item-info"><span class="item-title">${p.title}</span><div class="item-meta">${p.author||'مجهول'} · ${timeAgo(p.date)}</div></div><button class="btn btn-sm btn-danger" onclick="deletePost('${d.id}')">🗑️</button></div>`;
+    }).join('');
 }
 
-async function deletePost(postId) {
-    if (!confirm('حذف المنشور؟')) return;
-    await db.collection('posts').doc(postId).delete();
-    await renderPostsList();
-}
-
-async function renderPostsList() {
-    const container = document.getElementById('posts-container');
-    if (!container) return;
-    const snapshot = await db.collection('posts').orderBy('date', 'desc').limit(30).get();
-    if (snapshot.empty) { container.innerHTML = '<p>لا توجد منشورات</p>'; return; }
-    let html = '';
-    snapshot.forEach(doc => {
-        const post = doc.data();
-        html += `<div class="list-item">
-            <div class="item-info"><span class="item-title">${post.title}</span>
-            <div class="item-meta">${post.author||'مجهول'} · ${timeAgo(post.date)}</div></div>
-            <button class="btn btn-sm btn-danger" onclick="deletePost('${doc.id}')">🗑️</button>
-        </div>`;
-    });
-    container.innerHTML = html;
-}
-
-// ---------- 11. الكتّاب ----------
+// ---------- 9. الكتّاب (مع صورة ونبذة) ----------
 async function loadAuthorsSection(panel) {
-    panel.innerHTML = `
-        <h2>الكتّاب</h2>
-        <div class="card"><input type="text" id="author-name" class="form-control" placeholder="اسم الكاتب"><button class="btn btn-primary" onclick="addAuthor()">➕ إضافة</button></div>
-        <div id="authors-list" class="card"><div id="authors-container">⏳</div></div>`;
+    panel.innerHTML = `<h2>الكتّاب</h2>
+    <div class="card">
+        <div class="form-group"><label>الاسم</label><input type="text" id="a-name" class="form-control"></div>
+        <div class="form-group"><label>صورة (رابط)</label><input type="text" id="a-img" class="form-control" placeholder="رابط الصورة"></div>
+        <div class="form-group"><label>نبذة</label><textarea id="a-bio" class="form-control" rows="3"></textarea></div>
+        <button class="btn btn-primary" onclick="addAuthor()">➕ إضافة</button>
+    </div>
+    <div id="auth-list" class="card"><div id="auth-container">⏳</div></div>`;
     await renderAuthors();
 }
 async function addAuthor() {
-    const name = document.getElementById('author-name').value.trim();
-    if (!name) return alert('أدخل الاسم');
-    await db.collection('authors').add({ name, createdAt: new Date().toISOString() });
-    document.getElementById('author-name').value = '';
+    const n = document.getElementById('a-name').value.trim();
+    if (!n) return alert('أدخل اسماً');
+    await db.collection('authors').add({
+        name: n,
+        image: document.getElementById('a-img').value.trim(),
+        bio: document.getElementById('a-bio').value.trim(),
+        createdAt: new Date().toISOString()
+    });
+    document.getElementById('a-name').value=''; document.getElementById('a-img').value=''; document.getElementById('a-bio').value='';
     await renderAuthors();
 }
-async function deleteAuthor(id) {
-    if (!confirm('حذف؟')) return;
-    await db.collection('authors').doc(id).delete();
-    await renderAuthors();
-}
+async function deleteAuthor(id) { if (confirm('حذف؟')) { await db.collection('authors').doc(id).delete(); await renderAuthors(); } }
 async function renderAuthors() {
-    const container = document.getElementById('authors-container');
-    if (!container) return;
-    const snapshot = await db.collection('authors').orderBy('createdAt').get();
-    if (snapshot.empty) { container.innerHTML = '<p>لا يوجد كتّاب</p>'; return; }
-    container.innerHTML = snapshot.docs.map(doc => {
-        const a = doc.data();
-        return `<div class="list-item"><span>✍️ ${a.name}</span><button class="btn btn-sm btn-danger" onclick="deleteAuthor('${doc.id}')">🗑️</button></div>`;
+    const c = document.getElementById('auth-container'); if (!c) return;
+    const snap = await db.collection('authors').orderBy('createdAt').get();
+    if (snap.empty) { c.innerHTML='<p>لا يوجد كتّاب</p>'; return; }
+    c.innerHTML = snap.docs.map(d => {
+        const a = d.data();
+        return `<div class="list-item"><div class="item-info"><span class="item-title">✍️ ${a.name}</span><div class="item-meta">${a.bio?.substring(0,50)||'لا نبذة'}</div></div><button class="btn btn-sm btn-danger" onclick="deleteAuthor('${d.id}')">🗑️</button></div>`;
     }).join('');
 }
 
-// ---------- 12. المفاتيح ----------
+// ---------- 10. المفاتيح ----------
 async function loadKeysSection(panel) {
-    panel.innerHTML = `
-        <h2>المفاتيح</h2>
-        <div class="card">
-            <input type="text" id="key-name" class="form-control" placeholder="الاسم">
-            <select id="key-type" class="form-control"><option value="ai">ذكاء اصطناعي</option><option value="database">قاعدة بيانات</option></select>
-            <input type="text" id="key-value" class="form-control" placeholder="المفتاح">
-            <textarea id="key-instructions" class="form-control" placeholder="تعليمات"></textarea>
-            <button class="btn btn-primary" onclick="addKey()">➕ إضافة</button>
-        </div>
-        <div id="keys-list" class="card"><div id="keys-container">⏳</div></div>`;
+    panel.innerHTML = `<h2>المفاتيح</h2>
+    <div class="card">
+        <input type="text" id="k-name" class="form-control" placeholder="الاسم">
+        <select id="k-type" class="form-control"><option value="ai">ذكاء اصطناعي</option><option value="database">قاعدة بيانات</option></select>
+        <input type="text" id="k-val" class="form-control" placeholder="المفتاح">
+        <textarea id="k-inst" class="form-control" placeholder="تعليمات"></textarea>
+        <button class="btn btn-primary" onclick="addKey()">➕ إضافة</button>
+    </div>
+    <div id="keys-list" class="card"><div id="keys-container">⏳</div></div>`;
     await renderKeys();
 }
 async function addKey() {
-    const name = document.getElementById('key-name').value.trim();
-    const type = document.getElementById('key-type').value;
-    const value = document.getElementById('key-value').value.trim();
-    const instructions = document.getElementById('key-instructions').value.trim();
-    if (!name || !value) return alert('أدخل الاسم والمفتاح');
-    await db.collection('api_keys').add({ name, type, value, instructions, createdAt: new Date().toISOString() });
-    document.getElementById('key-name').value = '';
-    document.getElementById('key-value').value = '';
-    document.getElementById('key-instructions').value = '';
+    const n = document.getElementById('k-name').value.trim(), v = document.getElementById('k-val').value.trim();
+    if (!n||!v) return alert('أدخل الاسم والمفتاح');
+    await db.collection('api_keys').add({
+        name:n, type:document.getElementById('k-type').value, value:v,
+        instructions:document.getElementById('k-inst').value.trim(), createdAt:new Date().toISOString()
+    });
+    document.getElementById('k-name').value=''; document.getElementById('k-val').value=''; document.getElementById('k-inst').value='';
     await renderKeys();
 }
-async function deleteKey(id) {
-    if (!confirm('حذف؟')) return;
-    await db.collection('api_keys').doc(id).delete();
-    await renderKeys();
-}
+async function deleteKey(id) { if (confirm('حذف؟')) { await db.collection('api_keys').doc(id).delete(); await renderKeys(); } }
 async function renderKeys() {
-    const container = document.getElementById('keys-container');
-    if (!container) return;
-    const snapshot = await db.collection('api_keys').orderBy('createdAt', 'desc').get();
-    if (snapshot.empty) { container.innerHTML = '<p>لا توجد مفاتيح</p>'; return; }
-    container.innerHTML = snapshot.docs.map(doc => {
-        const k = doc.data();
-        return `<div class="list-item"><span>🔑 ${k.name} (${k.type})</span><button class="btn btn-sm btn-danger" onclick="deleteKey('${doc.id}')">🗑️</button></div>`;
+    const c = document.getElementById('keys-container'); if (!c) return;
+    const snap = await db.collection('api_keys').orderBy('createdAt','desc').get();
+    if (snap.empty) { c.innerHTML='<p>لا مفاتيح</p>'; return; }
+    c.innerHTML = snap.docs.map(d => {
+        const k = d.data();
+        return `<div class="list-item"><span>🔑 ${k.name} (${k.type})</span><button class="btn btn-sm btn-danger" onclick="deleteKey('${d.id}')">🗑️</button></div>`;
     }).join('');
 }
 
-console.log("✅ admin.js تم تحميله بنجاح");
+console.log("✅ admin.js جاهز");
