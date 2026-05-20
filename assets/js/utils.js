@@ -218,6 +218,32 @@ function applyFont(fontFamily, target = 'body') {
   if (link) {
     link.href = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, '+')}:wght@400;700&display=swap`;
   }
+
+  function parseMarkdown(text) {
+  if (!text) return '';
+  let html = text;
+  // عناوين
+  html = html.replace(/^### (.+)$/gm, '<h4 class="md-h4">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 class="md-h3">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 class="md-h2">$1</h2>');
+  // خط عريض ومائل
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // روابط
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  // صور Markdown
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">');
+  // قوائم
+  html = html.replace(/^\- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+  // أسطر جديدة
+  html = html.replace(/\n\n/g, '<br><br>');
+  html = html.replace(/\n/g, '<br>');
+  // خط أفقي
+  html = html.replace(/^---$/gm, '<hr>');
+  // جداول بسيطة (اختياري)
+  return html;
+  }
 }
 
 // ---------- 8. تأكيد التحميل ----------
