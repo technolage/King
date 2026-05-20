@@ -1,7 +1,9 @@
 // ============================================================
-//  ملف: body.js (مُحدّث - كامل)
+//  ملف: body.js (مُدمَج - كامل ومُحدّث)
 //  الوظيفة: عرض المقالات والتفاعلات (إعجاب، تعليق، مشاركة،
-//         تلخيص، بحث داخل المقال، تمييز، مصادر، وسام، تعديل التعليقات)
+//         تلخيص AI، بحث داخل المقال، تمييز، مصادر، وسام،
+//         تعديل/حذف التعليقات، قراءة صوتية، شريط تقدم،
+//         نافذة الكاتب، فلترة الكاتب، ترجمة ديناميكية)
 //  يعتمد على: firebase-config.js, utils.js, header.js
 // ============================================================
 
@@ -10,6 +12,7 @@ let isLoadingPosts = false;
 let allPostsLoaded = false;
 let activeCommentPostId = null;
 let currentSearchQuery = '';
+let currentAuthorId = null;
 let currentUtterance = null;
 let currentSpeakingPostId = null;
 
@@ -31,6 +34,7 @@ async function loadPosts(loadMore = false) {
     let query = db.collection('posts');
     if (window.currentCategoryId) query = query.where('category', '==', currentCategoryId);
     if (window.currentSubcategoryId) query = query.where('subcategory', '==', currentSubcategoryId);
+    if (currentAuthorId) query = query.where('authorId', '==', currentAuthorId);
     if (currentSearchQuery) {
       query = query.where('title', '>=', currentSearchQuery)
                    .where('title', '<=', currentSearchQuery + '\uf8ff');
@@ -100,6 +104,12 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
         case 'link': contentHTML += `<a href="${item.url}" target="_blank" rel="noopener noreferrer" class="post-link">🔗 ${item.text || item.url}</a>`; break;
         case 'markdown': contentHTML += `<div class="markdown-content">${parseMarkdown(item.value)}</div>`; break;
         case 'html': contentHTML += `<div class="html-content">${item.value}</div>`; break;
+        case 'quote':
+          contentHTML += `<blockquote class="elegant-quote"><div class="quote-icon">❝</div><p>${item.value}</p>${item.author ? `<cite>— ${item.author}</cite>` : ''}</blockquote>`;
+          break;
+        case 'summary':
+          contentHTML += `<div class="article-summary-box"><div class="summary-badge">📋 ملخص المقال</div><p>${item.value}</p></div>`;
+          break;
         default: contentHTML += `<p>${item.value}</p>`;
       }
     });
@@ -115,7 +125,17 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
   contentHTML = tempDiv.innerHTML;
 
   const authorName = post.author || 'مجهول';
+  const authorId = post.authorId || '';
   const postDate = post.date ? timeAgo(post.date) : '';
+
+  // كشف لغة المقال للترجمة
+  const articleText = (post.content && Array.isArray(post.content))
+    ? post.content.map(item => item.value || '').join(' ').substring(0, 500)
+    : '';
+  const isArabic = /[\u0600-\u06FF]/.test(articleText);
+  const translateDirection = isArabic ? 'ar2en' : 'en2ar';
+  const translateLabel = isArabic ? 'EN' : 'AR';
+  const translateTitle = isArabic ? 'ترجم إلى الإنجليزية' : 'ترجم إلى العربية';
 
   card.innerHTML = `
     <div class="post-header">
@@ -129,20 +149,26 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
                 <div class="dropdown-item search-in-post-btn" onclick="searchInPost('${post.id}')">🔎 بحث داخل المقال</div>
                 <div class="dropdown-item highlight-text-btn" onclick="highlightSelection('${post.id}')">🖍️ تمييز النص</div>
                 <div class="dropdown-item show-references-btn" onclick="showReferences('${post.id}')">📊 عرض المصادر والمراجع</div>
+                <div class="dropdown-item" onclick="filterByAuthor('${authorId}')">📄 مقالات الكاتب</div>
                 <div class="dropdown-item" onclick="reportPost('${post.id}')">🚩 إبلاغ</div>
             </div>
         </div>
     </div>
 
+    <div class="reading-progress-container" id="progress-container-${post.id}">
+        <div class="reading-progress-bar" id="progress-${post.id}"></div>
+    </div>
+
     <div class="post-body" style="font-family: '${bodyFont}', sans-serif;">
         <h3 class="post-title" style="font-family: '${titleFont}', serif; cursor:pointer;" onclick="expandPost('${post.id}')">${post.title}</h3>
         <div class="post-meta">
-            ${authorName !== 'مجهول' ? `<span class="post-author-name">✍️ ${authorName}</span>` : `<span class="post-author">✍️ ${authorName}</span>`}
+            ${authorName !== 'مجهول' ? `<span class="post-author-name" onclick="showAuthorBio('${authorId}', '${post.id}')">✍️ ${authorName}</span>` : `<span class="post-author">✍️ ${authorName}</span>`}
             <span class="post-date">🕒 ${postDate}</span>
             ${post.views ? `<span class="post-views">👁️ ${post.views} مشاهدة</span>` : ''}
         </div>
         <div class="post-content">${contentHTML}</div>
-        <span class="read-more" onclick="expandPost('${post.id}')">... اقرأ المزيد</span>
+        <span class="read-more-btn" onclick="expandPost('${post.id}')">📖 اقرأ المزيد</span>
+        <span class="collapse-btn" style="display:none;" onclick="expandPost('${post.id}')">▲ طي المقال</span>
     </div>
 
     <div class="ai-summary-box" id="summary-${post.id}" style="display:none;">
@@ -164,9 +190,7 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
         <span class="action-circle comment-btn" onclick="toggleComments('${post.id}')" title="تعليق">
             💬 <span class="action-badge">${post.comments ? post.comments.length : 0}</span>
         </span>
-        <span class="action-circle translate-circle" onclick="translatePost('${post.id}')" title="ترجمة">
-            <span class="lang-icon">AR</span><span class="lang-sep">|</span><span class="lang-icon">EN</span>
-        </span>
+        <span class="action-circle translate-circle" onclick="translatePost('${post.id}', '${translateDirection}')" title="${translateTitle}">${translateLabel}</span>
         <span class="action-circle whatsapp-circle" onclick="shareToWhatsApp('${post.id}')" title="واتساب">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
         </span>
@@ -196,22 +220,27 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
   return card;
 }
 
-// ---------- دوال التفاعل ----------
+// ---------- توسيع/طي البطاقة ----------
 function expandPost(postId) {
   const postBody = document.querySelector(`#post-${postId} .post-body`);
-  const readMoreBtn = document.querySelector(`#post-${postId} .read-more`);
+  const readMoreBtn = document.querySelector(`#post-${postId} .read-more-btn`);
+  const collapseBtn = document.querySelector(`#post-${postId} .collapse-btn`);
   if (postBody) {
-    postBody.classList.toggle('expanded');
     if (postBody.classList.contains('expanded')) {
+      postBody.classList.remove('expanded');
+      if (readMoreBtn) readMoreBtn.style.display = 'inline-block';
+      if (collapseBtn) collapseBtn.style.display = 'none';
+    } else {
+      postBody.classList.add('expanded');
       if (readMoreBtn) readMoreBtn.style.display = 'none';
+      if (collapseBtn) collapseBtn.style.display = 'inline-flex';
       const card = document.getElementById(`post-${postId}`);
       if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      if (readMoreBtn) readMoreBtn.style.display = 'inline-block';
     }
   }
 }
 
+// ---------- الإعجاب ----------
 async function toggleLike(postId) {
   try {
     const postRef = db.collection('posts').doc(postId);
@@ -220,7 +249,6 @@ async function toggleLike(postId) {
     const post = postDoc.data();
     const userFingerprint = getVisitorId();
     const hasLiked = (post.likedBy || []).includes(userFingerprint);
-
     if (hasLiked) {
       await postRef.update({
         likes: Math.max(0, (post.likes || 0) - 1),
@@ -253,6 +281,7 @@ async function updatePostCardLikes(postId) {
   } catch (e) {}
 }
 
+// ---------- التعليقات ----------
 function toggleComments(postId) {
   const section = document.getElementById(`comments-${postId}`);
   if (!section) return;
@@ -274,10 +303,8 @@ async function addComment(postId) {
   try {
     const postRef = db.collection('posts').doc(postId);
     const newComment = {
-      id: generateId(),
-      author: 'زائر',
-      text: sanitizeHTML(text),
-      date: new Date().toISOString(),
+      id: generateId(), author: 'زائر',
+      text: sanitizeHTML(text), date: new Date().toISOString(),
       visitorId: getVisitorId()
     };
     await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
@@ -304,21 +331,19 @@ function renderCommentHTML(comment, postId) {
     const isMyComment = comment.visitorId && comment.visitorId === myId;
     let actionsHTML = '';
     if (isMyComment) {
-        actionsHTML = `
-            <span class="comment-actions">
-                <button class="comment-edit-btn" onclick="editComment('${postId}', '${comment.id}')" title="تعديل">✏️</button>
-                <button class="comment-delete-btn" onclick="deleteComment('${postId}', '${comment.id}')" title="حذف">🗑️</button>
-            </span>`;
+        actionsHTML = `<span class="comment-actions">
+            <button class="comment-edit-btn" onclick="editComment('${postId}', '${comment.id}')" title="تعديل">✏️</button>
+            <button class="comment-delete-btn" onclick="deleteComment('${postId}', '${comment.id}')" title="حذف">🗑️</button>
+        </span>`;
     }
-    return `
-        <div class="comment-item">
-            <div class="comment-avatar">👤</div>
-            <div class="comment-content">
-                <span class="comment-author">${comment.author || 'زائر'} ${actionsHTML}</span>
-                <span class="comment-date">${timeAgo(comment.date)}</span>
-                <p id="comment-text-${comment.id}">${comment.text}</p>
-            </div>
-        </div>`;
+    return `<div class="comment-item">
+        <div class="comment-avatar">👤</div>
+        <div class="comment-content">
+            <span class="comment-author">${comment.author || 'زائر'} ${actionsHTML}</span>
+            <span class="comment-date">${timeAgo(comment.date)}</span>
+            <p id="comment-text-${comment.id}">${comment.text}</p>
+        </div>
+    </div>`;
 }
 
 async function deleteComment(postId, commentId) {
@@ -347,7 +372,7 @@ async function editComment(postId, commentId) {
     await refreshComments(postId);
 }
 
-// ---------- مساعدة ----------
+// ---------- المشاركة والنسخ والحفظ ----------
 function getVisitorId() {
   let id = localStorage.getItem('visitorId');
   if (!id) { id = generateId(); localStorage.setItem('visitorId', id); }
@@ -403,6 +428,7 @@ function toggleSavePost(postId) {
   }
 }
 
+// ---------- قراءة صوتية ----------
 function toggleListen(postId) {
   if (currentSpeakingPostId === postId && window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel();
@@ -416,11 +442,24 @@ function toggleListen(postId) {
   const text = postContent.innerText.trim();
   if (!text) return;
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ar-SA'; utterance.rate = 1.0;
+  utterance.rate = 1.0;
+  const setVoice = (voices) => {
+    const arabicVoice = voices.find(v => v.lang.startsWith('ar'));
+    if (arabicVoice) { utterance.voice = arabicVoice; utterance.lang = arabicVoice.lang; }
+    else { utterance.lang = 'ar-SA'; }
+    window.speechSynthesis.speak(utterance);
+  };
+  let voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      voices = window.speechSynthesis.getVoices();
+      setVoice(voices);
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  } else { setVoice(voices); }
   utterance.onstart = () => { currentSpeakingPostId = postId; updateListenIcon(postId, true); };
   utterance.onend = () => { currentSpeakingPostId = null; updateListenIcon(postId, false); };
   utterance.onerror = () => { currentSpeakingPostId = null; updateListenIcon(postId, false); };
-  window.speechSynthesis.speak(utterance);
 }
 
 function updateListenIcon(postId, isActive) {
@@ -428,13 +467,15 @@ function updateListenIcon(postId, isActive) {
   if (btn) { btn.classList.toggle('listening', isActive); btn.innerHTML = isActive ? '🔇' : '🔊'; }
 }
 
-function translatePost(postId) {
+// ---------- ترجمة ----------
+function translatePost(postId, direction) {
   const url = `${window.location.origin}${window.location.pathname}?post=${postId}`;
-  window.open(`https://translate.google.com/translate?sl=ar&tl=en&u=${encodeURIComponent(url)}`, '_blank');
+  const sl = direction === 'ar2en' ? 'ar' : 'en';
+  const tl = direction === 'ar2en' ? 'en' : 'ar';
+  window.open(`https://translate.google.com/translate?sl=${sl}&tl=${tl}&u=${encodeURIComponent(url)}`, '_blank');
 }
 
 function reportPost(postId) { alert('🚩 تم استلام بلاغك وسيتم مراجعته.'); closeAllMenus(); }
-
 function togglePostMenu(event, postId) { event.stopPropagation(); closeAllMenus(); const menu = document.getElementById(`menu-${postId}`); if (menu) menu.style.display = 'block'; }
 function closeAllMenus() { document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); }
 document.addEventListener('click', () => closeAllMenus());
@@ -470,8 +511,7 @@ function highlightInPost(postId) {
         regex.lastIndex = 0;
         while ((match = regex.exec(text)) !== null) {
           if (match.index > lastIndex) frag.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
-          const mark = document.createElement('mark');
-          mark.className = 'search-highlight'; mark.textContent = match[0];
+          const mark = document.createElement('mark'); mark.className = 'search-highlight'; mark.textContent = match[0];
           frag.appendChild(mark); matchCount++;
           lastIndex = match.index + match[0].length;
         }
@@ -498,8 +538,7 @@ function clearHighlights(postId) {
 function getHighlights(postId) { return JSON.parse(localStorage.getItem('highlights') || '{}')[postId] || []; }
 function saveHighlights(postId, highlights) {
   const all = JSON.parse(localStorage.getItem('highlights') || '{}');
-  all[postId] = highlights;
-  localStorage.setItem('highlights', JSON.stringify(all));
+  all[postId] = highlights; localStorage.setItem('highlights', JSON.stringify(all));
 }
 function highlightSelection(postId) {
   const selection = window.getSelection();
@@ -513,9 +552,7 @@ function highlightSelection(postId) {
   mark.style.backgroundColor = '#ffeb3b'; mark.dataset.postId = postId; mark.dataset.highlightText = selectedText;
   try { range.surroundContents(mark); } catch (e) { const span = document.createElement('span'); span.className = 'user-highlight'; span.style.backgroundColor = '#ffeb3b'; range.surroundContents(span); }
   selection.removeAllRanges();
-  const highlights = getHighlights(postId);
-  highlights.push({ text: selectedText });
-  saveHighlights(postId, highlights);
+  const highlights = getHighlights(postId); highlights.push({ text: selectedText }); saveHighlights(postId, highlights);
   const newMark = postBody.querySelector(`mark.user-highlight[data-highlight-text="${selectedText}"]`);
   if (newMark) newMark.addEventListener('click', function(e) {
     if (confirm('إلغاء تمييز هذا النص؟')) {
@@ -526,7 +563,7 @@ function highlightSelection(postId) {
   });
 }
 
-// ---------- عرض المصادر ----------
+// ---------- المصادر والمراجع ----------
 function showReferences(postId) {
   document.querySelectorAll('.references-box').forEach(b => b.remove());
   const postBody = document.querySelector(`#post-${postId} .post-body`);
@@ -543,7 +580,7 @@ function showReferences(postId) {
   postBody.appendChild(box);
 }
 
-// ---------- وسام + تفاعلات ----------
+// ---------- وسام القارئ ----------
 function getBadgeLevel(interactions) {
   if (interactions >= 100) return { name: 'أسطورة', icon: '👑' };
   if (interactions >= 50) return { name: 'خبير', icon: '⭐' };
@@ -582,13 +619,97 @@ async function generateSummary(postId) {
 }
 function closeSummary(postId) { const box = document.getElementById(`summary-${postId}`); if (box) box.style.display = 'none'; }
 
-// ---------- فلترة ----------
+// ---------- نافذة الكاتب ----------
+async function showAuthorBio(authorId, postId) {
+  if (!authorId) return;
+  document.querySelectorAll('.author-popup').forEach(p => p.remove());
+  let authorName = '', image = '', bio = '';
+  try {
+    const doc = await db.collection('authors').doc(authorId).get();
+    if (doc.exists) { authorName = doc.data().name || ''; image = doc.data().image || ''; bio = doc.data().bio || 'لا توجد نبذة.'; }
+  } catch (e) { return; }
+  const card = document.getElementById(`post-${postId}`);
+  if (!card) return;
+  const btn = card.querySelector('.post-author-name');
+  if (!btn) return;
+  const popup = document.createElement('div'); popup.className = 'author-popup';
+  popup.innerHTML = `<div class="author-popup-card">
+      <span class="author-popup-close" onclick="this.parentElement.parentElement.remove()">✕</span>
+      <div class="author-popup-avatar">${image ? `<img src="${image}" alt="${authorName}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;">` : '👤'}</div>
+      <h4>${authorName}</h4><p>${bio}</p></div>`;
+  const rect = btn.getBoundingClientRect();
+  popup.style.position = 'absolute'; popup.style.zIndex = '2000';
+  popup.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+  popup.style.left = (rect.left + window.scrollX) + 'px';
+  document.body.appendChild(popup);
+  setTimeout(() => {
+    const closeHandler = (e) => { if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', closeHandler); } };
+    document.addEventListener('click', closeHandler);
+  }, 10);
+}
+
+// ---------- فلترة الكاتب ----------
+function filterByAuthor(authorId) {
+  if (!authorId) return;
+  currentAuthorId = authorId;
+  if (typeof currentCategoryId !== 'undefined') window.currentCategoryId = null;
+  if (typeof currentSubcategoryId !== 'undefined') window.currentSubcategoryId = null;
+  currentSearchQuery = '';
+  const filterBar = document.getElementById('filterBar');
+  if (filterBar) { filterBar.classList.add('active'); document.getElementById('filterText').textContent = '📄 مقالات الكاتب'; }
+  loadPosts(false);
+  closeAllMenus();
+}
+
+function clearAuthorFilter() {
+  currentAuthorId = null;
+  clearFilter();
+}
+
+function clearFilter() {
+  currentAuthorId = null;
+  currentSearchQuery = '';
+  if (typeof window.currentCategoryId !== 'undefined') window.currentCategoryId = null;
+  if (typeof window.currentSubcategoryId !== 'undefined') window.currentSubcategoryId = null;
+  const filterBar = document.getElementById('filterBar');
+  if (filterBar) filterBar.classList.remove('active');
+  loadPosts(false);
+}
+
+// ---------- فلترة التبويبات ----------
 function filterByCategory(catId) { if (typeof handleTabClick === 'function') handleTabClick(new MouseEvent('click'), catId); else { window.currentCategoryId = catId; window.currentSubcategoryId = null; loadPosts(false); } }
 function filterBySubcategory(catId, subId) {
   if (typeof handleTabClick === 'function') { handleTabClick(new MouseEvent('click'), catId); setTimeout(() => { if (typeof selectSubcategory === 'function') selectSubcategory(subId); }, 100); }
   else { window.currentCategoryId = catId; window.currentSubcategoryId = subId; loadPosts(false); }
 }
 function searchPosts(query) { currentSearchQuery = query.trim(); loadPosts(false); }
+
+// ---------- شريط تقدم القراءة ----------
+function updateReadingProgress(postId) {
+    const postBody = document.querySelector(`#post-${postId} .post-body`);
+    const progressBar = document.getElementById(`progress-${postId}`);
+    const container = document.getElementById(`progress-container-${postId}`);
+    if (!postBody || !progressBar) return;
+    const scrollTop = postBody.scrollTop;
+    const scrollHeight = postBody.scrollHeight - postBody.clientHeight;
+    if (scrollHeight <= 0) { if (container) container.style.display = 'none'; return; }
+    if (container) container.style.display = 'block';
+    const progress = Math.min(100, Math.max(0, (scrollTop / scrollHeight) * 100));
+    progressBar.style.width = progress + '%';
+    if (progress >= 99) { progressBar.style.background = 'var(--primary)'; }
+    else { progressBar.style.background = 'linear-gradient(90deg, var(--primary-light), var(--primary))'; }
+}
+
+function setupReadingProgressObservers() {
+    document.addEventListener('scroll', function(e) {
+        const postBody = e.target.closest('.post-body.expanded');
+        if (postBody) {
+            const postId = postBody.closest('.post-card')?.id?.replace('post-', '');
+            if (postId) updateReadingProgress(postId);
+        }
+    }, true);
+}
+setupReadingProgressObservers();
 
 // ---------- التمرير اللانهائي ----------
 function setupInfiniteScroll() {
