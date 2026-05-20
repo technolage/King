@@ -1,5 +1,5 @@
 // ============================================================
-//  ملف: header.js (كامل - محدث)
+//  ملف: header.js (مُحدّث - كامل)
 //  الوظيفة: بناء الهيدر وإدارة التبويبات والبحث والوضع الليلي
 //  يعتمد على: firebase-config.js, utils.js
 // ============================================================
@@ -40,10 +40,10 @@ async function buildHeader() {
         <div class="nav-container" id="navContainer">
             <div class="nav-tabs-wrapper" id="navTabsWrapper">
                 <div class="nav-tabs" id="mainTabs">
-                    <div class="tab-item ${!currentCategoryId ? 'active' : ''}" onclick="handleTabClick(event, null)">🏠 الرئيسية</div>
+                    <div class="tab-item ${!currentCategoryId ? 'active' : ''}" onclick="handleTabClick(event, null)"> الرئيسية</div>
                     ${categoriesData.map(cat => `
                         <div class="tab-item" data-id="${cat.id}" onclick="handleTabClick(event, '${cat.id}')">
-                            ${cat.icon || '📌'} ${cat.name} ${cat.subcategories && cat.subcategories.length ? '▾' : ''}
+                            ${cat.icon || ''} ${cat.name} ${cat.subcategories && cat.subcategories.length ? '▾' : ''}
                         </div>
                     `).join('')}
                 </div>
