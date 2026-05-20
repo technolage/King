@@ -1,8 +1,8 @@
 // ============================================================
-//  ملف: footer.js (مُحدّث - كامل)
+//  ملف: footer.js (مُدمَج - كامل ومُحدّث)
 //  الوظيفة: بناء تذييل الموقع (الفوتر) وإدارته
 //  يشمل: تبويبات المقالات السريعة، زر العودة للأعلى،
-//         بوابة الأدمن المخفية (السنة)
+//         بوابة الأدمن المخفية (السنة)، الصفحات الثابتة
 //  يعتمد على: firebase-config.js, utils.js
 // ============================================================
 
@@ -122,7 +122,7 @@ function handleYearClick() {
   if (footerClickCount === 3) {
     footerClickCount = 0; clearTimeout(footerClickTimer);
     const password = prompt('🔐 أدخل كلمة المرور للوحة التحكم:');
-    if (password === '@...C772809978_1998...') {
+    if (password === '@...C772809978_1998...@') {
       localStorage.setItem('adminSession', btoa(Date.now() + '_' + Math.random()));
       window.location.href = 'admin.html';
     } else if (password !== null) { alert('❌ كلمة المرور غير صحيحة'); }
@@ -136,8 +136,8 @@ function logoutAdmin() { localStorage.removeItem('adminSession'); window.locatio
 function handleScrollVisibility() {
   const btn = document.getElementById('backToTopBtn');
   if (!btn) return;
-  if (window.scrollY > 500) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
-  else { btn.style.opacity = '0'; btn.style.pointerEvents = 'none'; }
+  if (window.scrollY > 500) { btn.classList.add('show'); }
+  else { btn.classList.remove('show'); }
 }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
