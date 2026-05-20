@@ -1,7 +1,8 @@
 // ============================================================
-//  ملف: utils.js (مُحدّث)
+//  ملف: utils.js (مُحدّث - كامل)
 //  الوظيفة: دوال مساعدة مشتركة لجميع أجزاء الموقع
-//  يشمل: إدارة الإعدادات، تنسيق الوقت، معالجة النصوص، الخطوط
+//  يشمل: إدارة الإعدادات، تنسيق الوقت، معالجة النصوص،
+//         الخطوط، Markdown، الصور
 //  يعتمد على: firebase-config.js
 // ============================================================
 
@@ -10,14 +11,15 @@ const DEFAULT_SETTINGS = {
   siteName: 'ALSHANFRICC',
   subtitle: 'مساحة الأناقة والمعرفة',
   primaryColor: '#c48b4c',
-  logoFont: 'Playfair Display',
+  titleFont: 'Playfair Display',
   bodyFont: 'Cairo',
   darkMode: false,
   footerText: 'جميع الحقوق محفوظة',
   facebookUrl: '#',
   twitterUrl: '#',
   instagramUrl: '#',
-  bodyBackground: '#f0f2f5'
+  bodyBackground: '#f0f2f5',
+  openai_api_key: ''
 };
 
 // ---------- 2. قائمة الخطوط الكاملة (20 عربي + 20 إنجليزي) ----------
@@ -70,10 +72,6 @@ const AVAILABLE_FONTS = [
 let cachedSettings = null;
 let cacheExpiry = 0;
 
-/**
- * جلب جميع الإعدادات من Firestore مع تخزين مؤقت (5 دقائق)
- * @returns {Object} كائن الإعدادات
- */
 async function getAllSettingsCached() {
   const now = Date.now();
   if (cachedSettings && now < cacheExpiry) {
@@ -94,26 +92,14 @@ async function getAllSettingsCached() {
   }
 }
 
-/**
- * جلب قيمة إعداد واحد (يستخدم التخزين المؤقت)
- * @param {string} key
- * @param {*} defaultValue
- * @returns {*}
- */
 async function getSetting(key, defaultValue = '') {
   const settings = await getAllSettingsCached();
   return settings[key] !== undefined ? settings[key] : defaultValue;
 }
 
-/**
- * تحديث إعداد معين في Firestore وإبطال التخزين المؤقت
- * @param {string} key
- * @param {*} value
- */
 async function updateSetting(key, value) {
   try {
     await db.collection('settings').doc('site').set({ [key]: value }, { merge: true });
-    // إبطال التخزين المؤقت ليعكس التغييرات فوراً
     cachedSettings = null;
     cacheExpiry = 0;
     console.log(`✅ تم تحديث الإعداد: ${key}`);
@@ -152,11 +138,13 @@ function truncateText(text, maxLength = 200) {
 
 function getFirstImage(contentArray) {
   if (!Array.isArray(contentArray)) return null;
-  // يبحث عن أول صورة (قد تكون عنصر type=images أو type=image)
-  const img = contentArray.find(el => el.type === 'image' || el.type === 'images');
-  if (!img) return null;
-  if (img.type === 'image') return img.value; // رابط مباشر
-  if (img.images && img.images.length > 0) return img.images[0].dataUrl || img.images[0];
+  for (let item of contentArray) {
+    if (item.type === 'image' && item.value) return item.value;
+    if (item.type === 'images' && item.images && item.images.length > 0) {
+      const first = item.images[0];
+      return first.dataUrl || first.url || first;
+    }
+  }
   return null;
 }
 
@@ -173,6 +161,10 @@ function escapeHTML(str) {
   const temp = document.createElement('div');
   temp.textContent = str;
   return temp.innerHTML;
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // ---------- 6. دوال عامة ----------
@@ -205,7 +197,28 @@ function scrollToElement(elementId) {
   }
 }
 
-// ---------- 7. تطبيق خط ديناميكي (للواجهة الأمامية) ----------
+// ---------- 7. معالجة Markdown ----------
+function parseMarkdown(text) {
+  if (!text) return '';
+  let html = text;
+  html = html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  html = html.replace(/^### (.+)$/gm, '<h4 class="md-h4">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 class="md-h3">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 class="md-h2">$1</h2>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">');
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/((?:<li>.*<\/li>)+)/g, '<ul>$1</ul>');
+  html = html.replace(/^---$/gm, '<hr>');
+  html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+  html = html.replace(/\n\n/g, '<br><br>');
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+// ---------- 8. تطبيق خط ديناميكي ----------
 function applyFont(fontFamily, target = 'body') {
   if (target === 'body') {
     document.body.style.fontFamily = fontFamily + ', sans-serif';
@@ -213,38 +226,11 @@ function applyFont(fontFamily, target = 'body') {
     const titles = document.querySelectorAll('.site-title, .post-title, .logo');
     titles.forEach(el => el.style.fontFamily = fontFamily + ', serif');
   }
-  // تحديث رابط Google Fonts إذا لزم الأمر
   const link = document.getElementById('dynamic-font-link');
   if (link) {
     link.href = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, '+')}:wght@400;700&display=swap`;
   }
-
-  function parseMarkdown(text) {
-  if (!text) return '';
-  let html = text;
-  // عناوين
-  html = html.replace(/^### (.+)$/gm, '<h4 class="md-h4">$1</h4>');
-  html = html.replace(/^## (.+)$/gm, '<h3 class="md-h3">$1</h3>');
-  html = html.replace(/^# (.+)$/gm, '<h2 class="md-h2">$1</h2>');
-  // خط عريض ومائل
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  // روابط
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-  // صور Markdown
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">');
-  // قوائم
-  html = html.replace(/^\- (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-  // أسطر جديدة
-  html = html.replace(/\n\n/g, '<br><br>');
-  html = html.replace(/\n/g, '<br>');
-  // خط أفقي
-  html = html.replace(/^---$/gm, '<hr>');
-  // جداول بسيطة (اختياري)
-  return html;
-  }
 }
 
-// ---------- 8. تأكيد التحميل ----------
+// ---------- 9. تأكيد التحميل ----------
 console.log("✅ ملف utils.js تم تحميله بنجاح - جميع الدوال المساعدة جاهزة");
