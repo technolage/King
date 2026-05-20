@@ -1,8 +1,10 @@
 /* ============================================================
-   ملف: style.css (مُحدّث - كامل)
+   ملف: style.css (مُدمَج - كامل ومُحدّث)
    الوظيفة: التنسيقات الكاملة للواجهة الأمامية
    يشمل: الهيدر، البطاقات، التعليقات، الفوتر، الوضع الليلي،
-         أنواع المحتوى، الأيقونات، المصادر، التمييز، البحث
+         أنواع المحتوى، الأيقونات، المصادر، التمييز، البحث،
+         الاقتباس، الملخص، شريط التقدم، نافذة الكاتب،
+         زر العودة للأعلى (Neumorphism)
    ============================================================ */
 
 /* ---------- 1. متغيرات CSS ---------- */
@@ -44,7 +46,53 @@ button { cursor: pointer; font-family: inherit; }
 #site-header {
     position: fixed; top: 0; left: 0; right: 0;
     background: var(--white); box-shadow: var(--shadow); z-index: 1000;
+    transition: background-image 0.5s ease;
 }
+#site-header.has-bg-image {
+    background-color: transparent;
+}
+#site-header.has-bg-image .header-top {
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+#site-header.has-bg-image .logo {
+    color: white !important;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+}
+#site-header.has-bg-image .icon-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+#site-header.has-bg-image .icon-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+#site-header.has-bg-image .nav-container {
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+#site-header.has-bg-image .tab-item {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+}
+#site-header.has-bg-image .tab-item.active,
+#site-header.has-bg-image .tab-item:hover {
+    background: var(--primary);
+    color: white;
+}
+#site-header.has-bg-image .search-bar {
+    background: rgba(0, 0, 0, 0.4);
+}
+#site-header.has-bg-image .search-bar input {
+    color: white;
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.2);
+}
+#site-header.has-bg-image .search-bar input::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+
 .header-top { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px; height: 56px; gap: 15px; }
 .logo { font-family: var(--font-title); font-size: 1.6rem; font-weight: 700; cursor: pointer; white-space: nowrap; letter-spacing: 1px; }
 .logo:hover { opacity: 0.85; }
@@ -105,33 +153,91 @@ button { cursor: pointer; font-family: inherit; }
 .post-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: visible; transition: var(--transition); position: relative; }
 .post-card:hover { box-shadow: var(--shadow-lg); }
 
-.post-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
-.post-category-badge { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.category-tag { background: var(--primary-light); color: var(--primary); padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: var(--transition); }
-.category-tag:hover { background: var(--primary); color: white; }
-.subcategory-tag { font-size: 0.8rem; color: var(--text-secondary); }
+.post-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); gap: 10px; }
+.post-breadcrumb { flex: 1; min-width: 0; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px; }
+.breadcrumb-item { color: var(--primary); cursor: pointer; font-weight: 600; }
+.breadcrumb-item:hover { text-decoration: underline; }
+.breadcrumb-sep { margin: 0 5px; color: var(--text-secondary); }
+.post-options { position: relative; flex-shrink: 0; margin-left: 0; }
 
 .post-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; border-radius: 12px; }
 .post-image-container { width: 100%; max-height: 400px; overflow: hidden; border-radius: 12px; }
 .post-image-container:hover .post-image { transform: scale(1.02); }
 
-.post-body { padding: 16px; max-height: 250px; overflow: hidden; position: relative; transition: max-height 0.5s ease; }
-.post-body.expanded { max-height: none; }
+/* شريط تقدم القراءة */
+.reading-progress-container {
+    width: 100%; height: 5px;
+    background: #e9ecef; border-radius: 10px;
+    overflow: hidden; margin-bottom: 12px;
+    display: none;
+}
+.reading-progress-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--primary-light), var(--primary));
+    border-radius: 10px; transition: width 0.4s ease;
+    position: relative;
+}
+.reading-progress-bar::after {
+    content: ''; position: absolute; top: 0; right: 0;
+    width: 30px; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5));
+    border-radius: 10px;
+    animation: shimmer 1.5s infinite;
+}
+
+.post-body {
+    padding: 16px;
+    max-height: 250px; overflow: hidden;
+    position: relative;
+    transition: max-height 0.5s ease, overflow 0s 0.5s;
+}
+.post-body.expanded {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
 .post-title { font-family: var(--font-title); font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; line-height: 1.4; cursor: pointer; }
 .post-title:hover { color: var(--primary); }
 .post-meta { display: flex; align-items: center; gap: 15px; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; flex-wrap: wrap; }
 .post-content { font-size: 0.95rem; line-height: 1.8; color: var(--text); }
 .post-content p { margin-bottom: 10px; }
 .post-content img { border-radius: 12px; margin: 10px 0; }
-.read-more { color: var(--primary); cursor: pointer; font-weight: 700; display: inline-block; margin-top: 10px; }
-.read-more:hover { text-decoration: underline; }
 
-.post-author-name { font-weight: 700; color: var(--primary); background: var(--primary-light); padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; }
-.post-subtitle { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin: 15px 0 8px; border-right: 3px solid var(--primary); padding-right: 10px; }
-.code-block { background: #1e1e1e; color: #d4d4d4; border-radius: var(--radius-sm); padding: 16px; overflow-x: auto; margin: 12px 0; font-family: 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; direction: ltr; text-align: left; }
+.read-more-btn {
+    display: inline-block; margin-top: 10px;
+    color: var(--primary); cursor: pointer; font-weight: 700;
+    background: var(--primary-light); padding: 6px 16px;
+    border-radius: 20px; transition: 0.3s;
+}
+.read-more-btn:hover { background: var(--primary); color: white; }
+.collapse-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 10px; color: #666; cursor: pointer; font-weight: 600;
+    font-size: 0.9rem; background: #f0f0f0; padding: 6px 16px;
+    border-radius: 20px; transition: 0.3s; border: none;
+}
+.collapse-btn:hover { background: #e0e0e0; color: #333; }
+
+.post-author-name {
+    font-weight: 700; color: var(--primary);
+    background: var(--primary-light); padding: 3px 12px;
+    border-radius: 20px; font-size: 0.85rem; cursor: pointer;
+}
+.post-subtitle {
+    font-size: 1.1rem; font-weight: 700; color: var(--primary);
+    margin: 15px 0 8px; border-right: 3px solid var(--primary); padding-right: 10px;
+}
+.code-block {
+    background: #1e1e1e; color: #d4d4d4; border-radius: var(--radius-sm);
+    padding: 16px; overflow-x: auto; margin: 12px 0;
+    font-family: 'Fira Code', monospace; font-size: 0.85rem;
+    line-height: 1.6; direction: ltr; text-align: left;
+}
 .post-link { color: #1a73e8; text-decoration: underline; word-break: break-all; }
 
-.post-content a, .markdown-content a, .html-content a { color: #1a73e8; text-decoration: underline; transition: color 0.2s; word-break: break-all; }
+.post-content a, .markdown-content a, .html-content a {
+    color: #1a73e8; text-decoration: underline; transition: color 0.2s; word-break: break-all;
+}
 .post-content a:hover, .markdown-content a:hover, .html-content a:hover { color: #1558b0; }
 
 .markdown-content h2 { font-size: 1.6rem; color: var(--primary); margin: 20px 0 10px; }
@@ -142,7 +248,38 @@ button { cursor: pointer; font-family: inherit; }
 .markdown-content ul { padding-right: 20px; margin: 10px 0; }
 .markdown-content li { margin: 5px 0; }
 .markdown-content hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
-.inline-code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 0.9em; }
+.inline-code {
+    background: #f0f0f0; padding: 2px 6px;
+    border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 0.9em;
+}
+
+/* الاقتباس والملخص */
+.elegant-quote {
+    position: relative; margin: 25px 0;
+    padding: 20px 60px 20px 25px;
+    background: linear-gradient(135deg, #fdf8f3 0%, #fef9f3 100%);
+    border-radius: 16px; border: 1px solid #e8d5c0;
+    font-style: italic; color: #5a4a3a; line-height: 1.9; font-size: 1.05rem;
+}
+.elegant-quote .quote-icon {
+    position: absolute; top: 10px; right: 15px;
+    font-size: 2.5rem; color: var(--primary); opacity: 0.7; line-height: 1;
+}
+.elegant-quote cite {
+    display: block; margin-top: 12px; font-style: normal;
+    font-weight: 700; color: var(--primary); font-size: 0.9rem; text-align: left;
+}
+.article-summary-box {
+    margin: 20px 0; padding: 20px;
+    background: #f0f7ff; border-radius: 14px;
+    border-right: 5px solid var(--primary);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+.article-summary-box .summary-badge {
+    font-weight: 700; color: var(--primary); font-size: 0.9rem;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.article-summary-box p { color: #2c3e50; line-height: 1.8; }
 
 /* أيقونات التفاعل */
 .post-actions { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
@@ -154,11 +291,14 @@ button { cursor: pointer; font-family: inherit; }
 }
 .action-circle:hover { transform: scale(1.15); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 .action-circle.liked { background: #ffebee; color: #e74c3c; }
-.action-badge { font-size: 0.7rem; font-weight: 700; position: absolute; top: -4px; right: -4px; background: var(--primary); color: white; border-radius: 10px; padding: 1px 5px; min-width: 18px; text-align: center; }
+.action-badge {
+    font-size: 0.7rem; font-weight: 700; position: absolute;
+    top: -4px; right: -4px; background: var(--primary);
+    color: white; border-radius: 10px; padding: 1px 5px;
+    min-width: 18px; text-align: center;
+}
 
-.translate-circle { background: #e8f0fe; color: #1a73e8; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.5px; }
-.lang-icon { line-height: 1; }
-.lang-sep { margin: 0 1px; opacity: 0.5; }
+.translate-circle { background: #e8f0fe; color: #1a73e8; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.5px; }
 .whatsapp-circle { background: #25D366; color: white; }
 .facebook-circle { background: #1877F2; color: white; }
 .copy-circle { background: #5f6368; color: white; }
@@ -168,12 +308,25 @@ button { cursor: pointer; font-family: inherit; }
 .listen-circle.listening { background: #c8e6c9; color: #1b5e20; animation: pulse 1.2s infinite; }
 
 /* القائمة المنسدلة */
-.post-options { position: relative; }
-.dropdown-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); background: transparent; border: none; font-size: 1.3rem; color: var(--text-secondary); }
+.dropdown-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: var(--transition);
+    background: transparent; border: none;
+    font-size: 1.3rem; color: var(--text-secondary);
+}
 .dropdown-btn:hover { background: #f0f2f5; }
-.dropdown-menu { display: none; position: absolute; top: 100%; left: 0; background: var(--white); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); min-width: 220px; z-index: 50; padding: 8px 0; animation: fadeIn 0.2s ease; }
+.dropdown-menu {
+    display: none; position: absolute; top: 100%; right: 0; left: auto;
+    background: var(--white); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg); min-width: 220px; z-index: 50;
+    padding: 8px 0; animation: fadeIn 0.2s ease;
+}
 .dropdown-menu.active { display: block; }
-.dropdown-item { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+.dropdown-item {
+    padding: 10px 16px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; font-size: 0.9rem;
+}
 .dropdown-item:hover { background: #f0f2f5; }
 
 /* ---------- 6. التعليقات ---------- */
@@ -218,12 +371,22 @@ mark.user-highlight:hover { background: #fdd835; }
 .references-list li { padding: 6px 0; border-bottom: 1px solid #eee; }
 .references-list a { color: var(--primary); text-decoration: underline; word-break: break-all; }
 
-.post-breadcrumb { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px; }
-.breadcrumb-item { color: var(--primary); cursor: pointer; font-weight: 600; }
-.breadcrumb-item:hover { text-decoration: underline; }
-.breadcrumb-sep { margin: 0 5px; color: var(--text-secondary); }
+/* نافذة الكاتب */
+.author-popup { position: absolute; z-index: 2000; }
+.author-popup-card {
+    background: var(--white); border-radius: 16px; padding: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15); max-width: 260px; text-align: center;
+}
+.author-popup-close { position: absolute; top: 5px; right: 8px; cursor: pointer; color: #999; font-size: 1rem; }
+.author-popup-avatar { margin-bottom: 10px; }
+.author-popup h4 { color: var(--primary); margin-bottom: 5px; }
+.author-popup p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; }
 
-.badge { font-size: 0.9rem; margin-left: 5px; vertical-align: middle; }
+.filter-bar {
+    display: none; padding: 8px 16px; background: #fef9f3;
+    border-radius: 8px; margin-bottom: 15px; align-items: center; gap: 10px;
+}
+.filter-bar.active { display: flex; }
 
 /* ---------- 8. الفوتر ---------- */
 #site-footer { background: var(--white); border-top: 1px solid var(--border); margin-top: 40px; }
@@ -251,8 +414,28 @@ mark.user-highlight:hover { background: #fdd835; }
 .footer-copyright { color: var(--text-secondary); font-size: 0.85rem; }
 .admin-gate { cursor: default; user-select: none; transition: var(--transition); padding: 2px 6px; border-radius: 4px; }
 .admin-gate:hover { background: #f0f2f5; }
-.back-to-top { position: fixed; bottom: 30px; right: 30px; width: 44px; height: 44px; border-radius: 50%; background: var(--primary); color: white; border: none; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.3s, transform 0.3s; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-.back-to-top:hover { transform: scale(1.1); }
+
+/* زر العودة للأعلى (Neumorphism) */
+.back-to-top {
+    position: fixed; bottom: 30px; right: 30px;
+    width: 50px; height: 50px; border-radius: 50%;
+    background: #f0f2f5;
+    color: var(--primary); border: none; font-size: 1.4rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s, box-shadow 0.3s, transform 0.2s;
+    z-index: 999;
+    box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.6);
+}
+.back-to-top:hover {
+    box-shadow: 12px 12px 20px rgba(0, 0, 0, 0.12), -6px -6px 14px rgba(255, 255, 255, 0.7);
+    transform: scale(1.03);
+}
+.back-to-top:active {
+    box-shadow: inset 6px 6px 10px rgba(0, 0, 0, 0.06), inset -4px -4px 8px rgba(255, 255, 255, 0.5);
+    transform: scale(0.98);
+}
+.back-to-top.show { opacity: 1; pointer-events: auto; }
 
 /* ---------- 9. رسائل الحالة ---------- */
 .no-posts { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
@@ -295,3 +478,4 @@ body.dark-mode .code-block { background: #000; }
 @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 100px; } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(46,125,50,0.4); } 70% { box-shadow: 0 0 0 8px rgba(46,125,50,0); } 100% { box-shadow: 0 0 0 0 rgba(46,125,50,0); } }
+@keyframes shimmer { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
