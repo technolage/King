@@ -181,7 +181,6 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
 
     <div class="post-body" style="font-family: '${bodyFont}', sans-serif;">
       <h3 class="post-title" style="font-family: '${titleFont}', serif; cursor:pointer;" onclick="expandPost('${post.id}')">${post.title}</h3>
-      <div class="post-meta">
         <span class="post-author">✍️ ${authorName}</span>
         <span class="post-date">🕒 ${postDate}</span>
         ${post.views ? `<span class="post-views">👁️ ${post.views} مشاهدة</span>` : ''}
