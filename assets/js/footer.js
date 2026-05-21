@@ -34,8 +34,11 @@ async function buildFooter() {
           <button class="footer-tab ${footerActiveTab === 'related' ? 'active' : ''}" onclick="switchFooterTab('related')" style="${footerActiveTab === 'related' ? 'border-bottom-color: ' + primaryColor : ''}">🔗 مقالات ذات صلة</button>
         </div>
 
+        <!-- شريط أفقي للتبويب النشط -->
         <div class="footer-horizontal-scroll" id="footerHorizontalScroll">
-          <div class="horizontal-scroll-wrapper" id="horizontalScrollWrapper"></div>
+          <div class="horizontal-scroll-wrapper" id="horizontalScrollWrapper">
+            <!-- المقالات ستظهر هنا أفقيًا -->
+          </div>
           <button class="scroll-arrow scroll-arrow-left" id="scrollArrowLeft" onclick="scrollHorizontal(-300)">◀</button>
           <button class="scroll-arrow scroll-arrow-right" id="scrollArrowRight" onclick="scrollHorizontal(300)">▶</button>
         </div>
@@ -125,6 +128,7 @@ async function loadFooterPosts(type) {
     }
     updateScrollArrows(container);
 
+    // تحميل المزيد عند الوصول للنهاية
     if (container) {
       container.onscroll = async function() {
         updateScrollArrows(container);
@@ -279,7 +283,7 @@ function handleYearClick() {
 function checkAdminSession() { return localStorage.getItem('adminSession') !== null; }
 function logoutAdmin() { localStorage.removeItem('adminSession'); window.location.href = 'index.html'; }
 
-// ---------- أزرار التمرير ----------
+// ---------- أزرار التمرير المزدوجة ----------
 function handleScrollVisibility() {
   const downBtn = document.getElementById('scrollDownBtn');
   const upBtn = document.getElementById('backToTopBtn');
@@ -306,6 +310,7 @@ function scrollToBottom() {
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 }
 
+// ---------- السنة التلقائية ----------
 function startYearAutoUpdate() {
   const yearSpan = document.getElementById('copyrightYear');
   if (!yearSpan) return;
