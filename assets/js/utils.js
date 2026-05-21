@@ -2,7 +2,7 @@
 //  ملف: utils.js (مُدمَج - كامل ومُحدّث)
 //  الوظيفة: دوال مساعدة مشتركة لجميع أجزاء الموقع
 //  يشمل: إدارة الإعدادات، التخزين المؤقت، الخطوط،
-//         Markdown، الوقت، النصوص، الصور
+//         Markdown، الوقت، النصوص، الصور، Toast
 //  يعتمد على: firebase-config.js
 // ============================================================
 
@@ -69,7 +69,7 @@ const AVAILABLE_FONTS = [
 
 // ---------- 3. التخزين المؤقت للإعدادات ----------
 const SETTINGS_CACHE_KEY = 'alshanfricc_settings_cache';
-const SETTINGS_CACHE_TIME = 10 * 60 * 1000; // 10 دقائق
+const SETTINGS_CACHE_TIME = 30 * 60 * 1000; // 30 دقيقة
 
 function getCachedSettingsFromLocal() {
     try {
@@ -95,16 +95,19 @@ function saveCachedSettingsToLocal(settings) {
 async function getAllSettingsCached() {
     const local = getCachedSettingsFromLocal();
     if (local) {
-        refreshSettingsFromServer();
+        setTimeout(() => refreshSettingsFromServer(), 100);
         return local;
     }
     try {
-        const doc = await db.collection('settings').doc('site').get();
+        const doc = await Promise.race([
+            db.collection('settings').doc('site').get(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+        ]);
         const settings = doc.exists ? { ...DEFAULT_SETTINGS, ...doc.data() } : { ...DEFAULT_SETTINGS };
         saveCachedSettingsToLocal(settings);
         return settings;
     } catch (error) {
-        console.error('خطأ في جلب الإعدادات:', error);
+        console.warn('تعذر جلب الإعدادات، استخدام الافتراضي');
         return { ...DEFAULT_SETTINGS };
     }
 }
@@ -253,5 +256,32 @@ function applyFont(fontFamily, target = 'body') {
     }
 }
 
-// ---------- 9. تأكيد التحميل ----------
+// ---------- 9. نظام Toast ----------
+function showToast(message, type = 'success', duration = 3000) {
+    const existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+
+    const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+    const container = document.createElement('div');
+    container.className = 'toast-container';
+    container.innerHTML = `
+        <div class="toast toast-${type}">
+            <span class="toast-icon">${icons[type]}</span>
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.closest('.toast-container').remove()">✕</button>
+        </div>`;
+    document.body.appendChild(container);
+    setTimeout(() => container.classList.add('show'), 10);
+    const timer = setTimeout(() => {
+        container.classList.remove('show');
+        setTimeout(() => container.remove(), 400);
+    }, duration);
+    container.querySelector('.toast').addEventListener('click', () => {
+        clearTimeout(timer);
+        container.classList.remove('show');
+        setTimeout(() => container.remove(), 400);
+    });
+}
+
+// ---------- 10. تأكيد التحميل ----------
 console.log("✅ ملف utils.js تم تحميله بنجاح - جميع الدوال جاهزة");
