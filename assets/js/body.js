@@ -2,8 +2,8 @@
 //  ملف: body.js (مُدمَج - كامل ومُحدّث)
 //  الوظيفة: عرض المقالات والتفاعلات (إعجاب، تعليق، مشاركة،
 //         تلخيص AI، بحث داخل المقال، تمييز، مصادر، وسام،
-//         تعديل/حذف التعليقات، قراءة صوتية، شريط تقدم،
-//         نافذة الكاتب، فلترة الكاتب، ترجمة ديناميكية)
+//         تعديل/حذف التعليقات، شريط تقدم، نافذة الكاتب،
+//         فلترة الكاتب، ترجمة ديناميكية، تصفح)
 //  يعتمد على: firebase-config.js, utils.js, header.js
 // ============================================================
 
@@ -13,45 +13,53 @@ let allPostsLoaded = false;
 let activeCommentPostId = null;
 let currentSearchQuery = '';
 let currentAuthorId = null;
-let currentUtterance = null;
-let currentSpeakingPostId = null;
+let currentPage = 1;
+const postsPerPage = 20;
+let totalPostsCount = 0;
 
 // ---------- تحميل المقالات ----------
-async function loadPosts(loadMore = false) {
-  if (isLoadingPosts || allPostsLoaded) return;
+async function loadPosts(page = 1) {
+  if (isLoadingPosts) return;
   isLoadingPosts = true;
+  currentPage = page;
 
   const feed = document.getElementById('posts-feed');
   if (!feed) { isLoadingPosts = false; return; }
 
-  if (!loadMore) {
-    feed.innerHTML = '<div class="loading-spinner">⏳ جاري تحميل المقالات...</div>';
-    lastVisiblePost = null;
-    allPostsLoaded = false;
-  }
+  feed.innerHTML = '<div class="loading-spinner">⏳ جاري تحميل المقالات...</div>';
 
   try {
-    let query = db.collection('posts');
-    if (window.currentCategoryId) query = query.where('category', '==', currentCategoryId);
-    if (window.currentSubcategoryId) query = query.where('subcategory', '==', currentSubcategoryId);
-    if (currentAuthorId) query = query.where('authorId', '==', currentAuthorId);
+    let baseQuery = db.collection('posts');
+    if (window.currentCategoryId) baseQuery = baseQuery.where('category', '==', currentCategoryId);
+    if (window.currentSubcategoryId) baseQuery = baseQuery.where('subcategory', '==', currentSubcategoryId);
+    if (currentAuthorId) baseQuery = baseQuery.where('authorId', '==', currentAuthorId);
     if (currentSearchQuery) {
-      query = query.where('title', '>=', currentSearchQuery)
-                   .where('title', '<=', currentSearchQuery + '\uf8ff');
+      baseQuery = baseQuery.where('title', '>=', currentSearchQuery)
+                           .where('title', '<=', currentSearchQuery + '\uf8ff');
     }
-    query = query.orderBy('date', 'desc').limit(15);
-    if (loadMore && lastVisiblePost) query = query.startAfter(lastVisiblePost);
+
+    const countSnapshot = await baseQuery.get();
+    totalPostsCount = countSnapshot.size;
+    const totalPages = Math.ceil(totalPostsCount / postsPerPage);
+
+    let query = baseQuery.orderBy('date', 'desc').limit(postsPerPage);
+    if (page > 1) {
+      const previousSnapshot = await baseQuery.orderBy('date', 'desc').limit((page - 1) * postsPerPage).get();
+      if (previousSnapshot.docs.length > 0) {
+        const lastVisible = previousSnapshot.docs[previousSnapshot.docs.length - 1];
+        query = query.startAfter(lastVisible);
+      }
+    }
 
     const snapshot = await query.get();
+    feed.innerHTML = '';
 
-    if (!loadMore) feed.innerHTML = '';
-    if (snapshot.empty && !loadMore) {
-      feed.innerHTML = `<div class="no-posts"><div class="no-posts-icon">📝</div><h3>لا توجد مقالات حالياً</h3><p>لم يتم العثور على أي مقال.</p></div>`;
-      allPostsLoaded = true; isLoadingPosts = false; return;
+    if (snapshot.empty) {
+      feed.innerHTML = `<div class="no-posts"><div class="no-posts-icon">📝</div><h3>لا توجد مقالات</h3><p>لم يتم العثور على أي مقال في هذه الصفحة.</p></div>`;
+      isLoadingPosts = false;
+      return;
     }
-    if (snapshot.empty && loadMore) { allPostsLoaded = true; isLoadingPosts = false; return; }
 
-    lastVisiblePost = snapshot.docs[snapshot.docs.length - 1];
     const settings = await getAllSettingsCached();
     const titleFont = settings.titleFont || 'Playfair Display';
     const bodyFont = settings.bodyFont || 'Cairo';
@@ -61,11 +69,14 @@ async function loadPosts(loadMore = false) {
       const card = await createPostCard(post, titleFont, bodyFont);
       feed.appendChild(card);
     }
-    if (snapshot.docs.length < 15) allPostsLoaded = true;
+
+    addPaginationControls(page, totalPages);
+
   } catch (error) {
     console.error('خطأ في تحميل المقالات:', error);
-    if (!loadMore) feed.innerHTML = '<p class="error-message">⚠️ حدث خطأ أثناء تحميل المقالات.</p>';
+    feed.innerHTML = '<p class="error-message">⚠️ حدث خطأ أثناء تحميل المقالات.</p>';
   }
+
   isLoadingPosts = false;
 }
 
@@ -128,7 +139,6 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
   const authorId = post.authorId || '';
   const postDate = post.date ? timeAgo(post.date) : '';
 
-  // كشف لغة المقال للترجمة
   const articleText = (post.content && Array.isArray(post.content))
     ? post.content.map(item => item.value || '').join(' ').substring(0, 500)
     : '';
@@ -191,11 +201,8 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
             💬 <span class="action-badge">${post.comments ? post.comments.length : 0}</span>
         </span>
         <span class="action-circle translate-circle" onclick="translatePost('${post.id}', '${translateDirection}')" title="${translateTitle}">${translateLabel}</span>
-        <span class="action-circle whatsapp-circle" onclick="shareToWhatsApp('${post.id}')" title="واتساب">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        </span>
-        <span class="action-circle facebook-circle" onclick="shareToFacebook('${post.id}')" title="فيسبوك">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        <span class="action-circle share-general-circle" onclick="generalShare('${post.id}')" title="مشاركة">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
         </span>
         <span class="action-circle copy-circle" onclick="copyPostLink('${post.id}')" title="نسخ الرابط">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="white"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
@@ -203,7 +210,6 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
         <span class="action-circle save-circle ${isPostSaved(post.id) ? 'saved' : ''}" onclick="toggleSavePost('${post.id}')" title="حفظ">
             ${isPostSaved(post.id) ? '🔖' : '🏷️'}
         </span>
-        <span class="action-circle listen-circle" onclick="toggleListen('${post.id}')" title="استماع">🔊</span>
     </div>
 
     <div class="comments-section" id="comments-${post.id}" style="display:none;">
@@ -381,27 +387,22 @@ function getVisitorId() {
 
 function copyPostLink(postId) {
   const url = `${window.location.origin}${window.location.pathname}?post=${postId}`;
-  navigator.clipboard.writeText(url).then(() => alert('✅ تم نسخ الرابط'));
+  navigator.clipboard.writeText(url).then(() => showToast('✅ تم نسخ الرابط'));
   closeAllMenus();
 }
 
-function shareToWhatsApp(postId) {
-  const url = encodeURIComponent(`${window.location.origin}${window.location.pathname}?post=${postId}`);
-  window.open(`https://wa.me/?text=${url}`, '_blank');
-}
-
-function shareToFacebook(postId) {
-  const url = encodeURIComponent(`${window.location.origin}${window.location.pathname}?post=${postId}`);
-  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
-}
-
-async function sharePost(postId) {
+async function generalShare(postId) {
   const url = `${window.location.origin}${window.location.pathname}?post=${postId}`;
-  if (navigator.share) { try { await navigator.share({ title: 'مقال من ALSHANFRICC', url }); } catch (e) {} }
-  else { copyPostLink(postId); }
+  const card = document.getElementById(`post-${postId}`);
+  const titleEl = card?.querySelector('.post-title');
+  const title = titleEl ? titleEl.textContent.trim() : 'مقال من ALSHANFRICC';
+  if (navigator.share) {
+    try { await navigator.share({ title, url }); } catch (err) {}
+  } else {
+    await navigator.clipboard.writeText(url);
+    showToast('✅ تم نسخ الرابط للمشاركة');
+  }
 }
-
-function openPost(postId) { window.open(`${window.location.origin}${window.location.pathname}?post=${postId}`, '_blank'); }
 
 function saveForLater(postId) {
   let saved = JSON.parse(localStorage.getItem('savedPosts') || '[]');
@@ -428,45 +429,6 @@ function toggleSavePost(postId) {
   }
 }
 
-// ---------- قراءة صوتية ----------
-function toggleListen(postId) {
-  if (currentSpeakingPostId === postId && window.speechSynthesis.speaking) {
-    window.speechSynthesis.cancel();
-    currentSpeakingPostId = null;
-    updateListenIcon(postId, false);
-    return;
-  }
-  window.speechSynthesis.cancel();
-  const postContent = document.querySelector(`#post-${postId} .post-content`);
-  if (!postContent) return;
-  const text = postContent.innerText.trim();
-  if (!text) return;
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.0;
-  const setVoice = (voices) => {
-    const arabicVoice = voices.find(v => v.lang.startsWith('ar'));
-    if (arabicVoice) { utterance.voice = arabicVoice; utterance.lang = arabicVoice.lang; }
-    else { utterance.lang = 'ar-SA'; }
-    window.speechSynthesis.speak(utterance);
-  };
-  let voices = window.speechSynthesis.getVoices();
-  if (voices.length === 0) {
-    window.speechSynthesis.onvoiceschanged = () => {
-      voices = window.speechSynthesis.getVoices();
-      setVoice(voices);
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  } else { setVoice(voices); }
-  utterance.onstart = () => { currentSpeakingPostId = postId; updateListenIcon(postId, true); };
-  utterance.onend = () => { currentSpeakingPostId = null; updateListenIcon(postId, false); };
-  utterance.onerror = () => { currentSpeakingPostId = null; updateListenIcon(postId, false); };
-}
-
-function updateListenIcon(postId, isActive) {
-  const btn = document.querySelector(`#post-${postId} .listen-circle`);
-  if (btn) { btn.classList.toggle('listening', isActive); btn.innerHTML = isActive ? '🔇' : '🔊'; }
-}
-
 // ---------- ترجمة ----------
 function translatePost(postId, direction) {
   const url = `${window.location.origin}${window.location.pathname}?post=${postId}`;
@@ -475,7 +437,7 @@ function translatePost(postId, direction) {
   window.open(`https://translate.google.com/translate?sl=${sl}&tl=${tl}&u=${encodeURIComponent(url)}`, '_blank');
 }
 
-function reportPost(postId) { alert('🚩 تم استلام بلاغك وسيتم مراجعته.'); closeAllMenus(); }
+function reportPost(postId) { showToast('🚩 تم استلام بلاغك'); closeAllMenus(); }
 function togglePostMenu(event, postId) { event.stopPropagation(); closeAllMenus(); const menu = document.getElementById(`menu-${postId}`); if (menu) menu.style.display = 'block'; }
 function closeAllMenus() { document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); }
 document.addEventListener('click', () => closeAllMenus());
@@ -548,19 +510,29 @@ function highlightSelection(postId) {
   if (!postBody || !postBody.contains(range.commonAncestorContainer)) return alert('يجب أن يكون النص داخل المقال.');
   const selectedText = range.toString().trim();
   if (!selectedText) return;
-  const mark = document.createElement('mark'); mark.className = 'user-highlight';
-  mark.style.backgroundColor = '#ffeb3b'; mark.dataset.postId = postId; mark.dataset.highlightText = selectedText;
-  try { range.surroundContents(mark); } catch (e) { const span = document.createElement('span'); span.className = 'user-highlight'; span.style.backgroundColor = '#ffeb3b'; range.surroundContents(span); }
+  let mark;
+  try {
+    mark = document.createElement('mark'); mark.className = 'user-highlight';
+    mark.style.backgroundColor = '#ffeb3b'; mark.dataset.postId = postId; mark.dataset.highlightText = selectedText;
+    range.surroundContents(mark);
+  } catch (e) {
+    const span = document.createElement('span'); span.className = 'user-highlight';
+    span.style.backgroundColor = '#ffeb3b'; span.dataset.postId = postId; span.dataset.highlightText = selectedText;
+    range.surroundContents(span);
+    mark = span;
+  }
   selection.removeAllRanges();
   const highlights = getHighlights(postId); highlights.push({ text: selectedText }); saveHighlights(postId, highlights);
-  const newMark = postBody.querySelector(`mark.user-highlight[data-highlight-text="${selectedText}"]`);
-  if (newMark) newMark.addEventListener('click', function(e) {
-    if (confirm('إلغاء تمييز هذا النص؟')) {
-      this.parentNode.replaceChild(document.createTextNode(this.textContent), this);
-      this.parentNode.normalize();
-      saveHighlights(postId, getHighlights(postId).filter(h => h.text !== selectedText));
-    }
-  });
+  if (mark) {
+    mark.addEventListener('click', function(e) {
+      if (confirm('إلغاء تمييز هذا النص؟')) {
+        this.parentNode.replaceChild(document.createTextNode(this.textContent), this);
+        this.parentNode.normalize();
+        saveHighlights(postId, getHighlights(postId).filter(h => h.text !== selectedText));
+      }
+    });
+  }
+  closeAllMenus();
 }
 
 // ---------- المصادر والمراجع ----------
@@ -606,7 +578,12 @@ async function generateSummary(postId) {
   if (!postBody) { content.innerHTML = '❌ لم يتم العثور على محتوى.'; return; }
   const fullText = postBody.innerText.trim().substring(0, 3000);
   if (fullText.length < 50) { content.innerHTML = '⚠️ المقال قصير جداً.'; return; }
-  const apiKey = await getSetting('openai_api_key', '');
+  let apiKey = '';
+  try {
+    const keysSnap = await db.collection('api_keys').where('type', '==', 'ai').limit(1).get();
+    if (!keysSnap.empty) apiKey = keysSnap.docs[0].data().value;
+  } catch (e) {}
+  if (!apiKey) apiKey = await getSetting('openai_api_key', '');
   if (!apiKey) { content.innerHTML = '⚠️ لم يتم تعيين مفتاح API.'; return; }
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -632,18 +609,28 @@ async function showAuthorBio(authorId, postId) {
   if (!card) return;
   const btn = card.querySelector('.post-author-name');
   if (!btn) return;
-  const popup = document.createElement('div'); popup.className = 'author-popup';
-  popup.innerHTML = `<div class="author-popup-card">
+  const popup = document.createElement('div');
+  popup.className = 'author-popup horizontal';
+  popup.innerHTML = `
+    <div class="author-popup-card-horizontal">
       <span class="author-popup-close" onclick="this.parentElement.parentElement.remove()">✕</span>
-      <div class="author-popup-avatar">${image ? `<img src="${image}" alt="${authorName}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;">` : '👤'}</div>
-      <h4>${authorName}</h4><p>${bio}</p></div>`;
+      <div class="author-popup-avatar-horizontal">
+        ${image ? `<img src="${image}" alt="${authorName}" style="width:70px;height:70px;border-radius:50%;object-fit:cover;">` : '<div style="width:70px;height:70px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:2rem;">👤</div>'}
+      </div>
+      <div class="author-popup-info">
+        <h4>${authorName}</h4>
+        <p>${bio}</p>
+      </div>
+    </div>`;
   const rect = btn.getBoundingClientRect();
   popup.style.position = 'absolute'; popup.style.zIndex = '2000';
   popup.style.top = (rect.bottom + window.scrollY + 5) + 'px';
   popup.style.left = (rect.left + window.scrollX) + 'px';
   document.body.appendChild(popup);
   setTimeout(() => {
-    const closeHandler = (e) => { if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', closeHandler); } };
+    const closeHandler = (e) => {
+      if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', closeHandler); }
+    };
     document.addEventListener('click', closeHandler);
   }, 10);
 }
@@ -655,9 +642,8 @@ function filterByAuthor(authorId) {
   if (typeof currentCategoryId !== 'undefined') window.currentCategoryId = null;
   if (typeof currentSubcategoryId !== 'undefined') window.currentSubcategoryId = null;
   currentSearchQuery = '';
-  const filterBar = document.getElementById('filterBar');
-  if (filterBar) { filterBar.classList.add('active'); document.getElementById('filterText').textContent = '📄 مقالات الكاتب'; }
-  loadPosts(false);
+  currentPage = 1;
+  loadPosts(1);
   closeAllMenus();
 }
 
@@ -669,20 +655,24 @@ function clearAuthorFilter() {
 function clearFilter() {
   currentAuthorId = null;
   currentSearchQuery = '';
+  currentPage = 1;
   if (typeof window.currentCategoryId !== 'undefined') window.currentCategoryId = null;
   if (typeof window.currentSubcategoryId !== 'undefined') window.currentSubcategoryId = null;
-  const filterBar = document.getElementById('filterBar');
-  if (filterBar) filterBar.classList.remove('active');
-  loadPosts(false);
+  loadPosts(1);
 }
 
 // ---------- فلترة التبويبات ----------
-function filterByCategory(catId) { if (typeof handleTabClick === 'function') handleTabClick(new MouseEvent('click'), catId); else { window.currentCategoryId = catId; window.currentSubcategoryId = null; loadPosts(false); } }
-function filterBySubcategory(catId, subId) {
-  if (typeof handleTabClick === 'function') { handleTabClick(new MouseEvent('click'), catId); setTimeout(() => { if (typeof selectSubcategory === 'function') selectSubcategory(subId); }, 100); }
-  else { window.currentCategoryId = catId; window.currentSubcategoryId = subId; loadPosts(false); }
+function filterByCategory(catId) {
+  currentPage = 1;
+  if (typeof handleTabClick === 'function') handleTabClick(new MouseEvent('click'), catId);
+  else { window.currentCategoryId = catId; window.currentSubcategoryId = null; loadPosts(1); }
 }
-function searchPosts(query) { currentSearchQuery = query.trim(); loadPosts(false); }
+function filterBySubcategory(catId, subId) {
+  currentPage = 1;
+  if (typeof handleTabClick === 'function') { handleTabClick(new MouseEvent('click'), catId); setTimeout(() => { if (typeof selectSubcategory === 'function') selectSubcategory(subId); }, 100); }
+  else { window.currentCategoryId = catId; window.currentSubcategoryId = subId; loadPosts(1); }
+}
+function searchPosts(query) { currentSearchQuery = query.trim(); currentPage = 1; loadPosts(1); }
 
 // ---------- شريط تقدم القراءة ----------
 function updateReadingProgress(postId) {
@@ -711,11 +701,32 @@ function setupReadingProgressObservers() {
 }
 setupReadingProgressObservers();
 
-// ---------- التمرير اللانهائي ----------
-function setupInfiniteScroll() {
-  const observer = new IntersectionObserver((entries) => { if (entries[0].isIntersecting && !isLoadingPosts && !allPostsLoaded) loadPosts(true); }, { rootMargin: '200px' });
-  setInterval(() => { const cards = document.querySelectorAll('.post-card'); if (cards.length) observer.observe(cards[cards.length - 1]); }, 1000);
+// ---------- أزرار التصفح ----------
+function addPaginationControls(page, totalPages) {
+  const oldPagination = document.getElementById('pagination-container');
+  if (oldPagination) oldPagination.remove();
+
+  if (totalPages <= 1) return;
+
+  const feed = document.getElementById('posts-feed');
+  const pagination = document.createElement('div');
+  pagination.id = 'pagination-container';
+  pagination.className = 'pagination-container';
+
+  let html = '';
+  html += `<button class="pagination-btn" ${page === 1 ? 'disabled' : ''} onclick="loadPosts(${page - 1})">◀ السابق</button>`;
+  html += '<div class="pagination-numbers">';
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === page) html += `<span class="pagination-number active">${i}</span>`;
+    else if (Math.abs(i - page) <= 2 || i === 1 || i === totalPages) html += `<span class="pagination-number" onclick="loadPosts(${i})">${i}</span>`;
+    else if (Math.abs(i - page) === 3) html += `<span class="pagination-dots">...</span>`;
+  }
+  html += '</div>';
+  html += `<button class="pagination-btn" ${page === totalPages ? 'disabled' : ''} onclick="loadPosts(${page + 1})">التالي ▶</button>`;
+  html += `<span class="pagination-info">صفحة ${page} من ${totalPages} (${totalPostsCount} مقال)</span>`;
+
+  pagination.innerHTML = html;
+  feed.appendChild(pagination);
 }
-setupInfiniteScroll();
 
 console.log("✅ body.js تم تحميله بنجاح");
