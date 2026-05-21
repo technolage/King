@@ -1,11 +1,10 @@
 /* ============================================================
-   ملف: style.css (مُدمَج - كامل ومُحدّث)
-   الوظيفة: التنسيقات الكاملة للواجهة الأمامية
+   ملف: style.css (كامل ومُحدّث)
+   الوظيفة: جميع تنسيقات الواجهة الأمامية
    يشمل: الهيدر، البطاقات، التعليقات، الفوتر، الوضع الليلي،
-         أنواع المحتوى، الأيقونات، المصادر، التمييز، البحث،
-         الاقتباس، الملخص، شريط التقدم، نافذة الكاتب،
-         أزرار التمرير المزدوجة، الصفحات الثابتة، شريط الأخبار،
-         أزرار التصفح، Toast
+         أنواع المحتوى، الأيقونات، شريط التقدم، نافذة الكاتب،
+         أزرار التمرير المزدوجة، الصفحات الثابتة، أزرار التصفح،
+         Toast، شاشة التحميل
    ============================================================ */
 
 /* ---------- 1. متغيرات CSS ---------- */
@@ -85,12 +84,11 @@ button { cursor: pointer; font-family: inherit; }
 #site-header.has-bg-image .tab-item:hover { background: rgba(255,255,255,0.25); }
 #site-header.has-bg-image .search-bar { background: rgba(0,0,0,0.25); }
 #site-header.has-bg-image .subcategory-bar { background: rgba(0,0,0,0.2); }
-#site-header.has-bg-image .breaking-news-bar { background: rgba(0,0,0,0.1); }
 
 .header-top { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px; height: 56px; gap: 15px; }
 .logo {
-    font-family: var(--font-title); font-size: 2.8rem; font-weight: 900;
-    cursor: pointer; white-space: nowrap; letter-spacing: 2px;
+    font-family: var(--font-title); font-size: 1.6rem; font-weight: 900;
+    cursor: pointer; white-space: nowrap; letter-spacing: 1px;
     display: flex; align-items: baseline; gap: 0;
     text-transform: uppercase;
 }
@@ -106,7 +104,6 @@ button { cursor: pointer; font-family: inherit; }
     transition: var(--transition); cursor: pointer;
 }
 .icon-btn:hover { background: #d8dadf; }
-.profile-btn { background: var(--primary-light); color: var(--primary); font-weight: bold; }
 
 .search-bar {
     display: none; align-items: center; padding: 8px 16px;
@@ -158,30 +155,6 @@ button { cursor: pointer; font-family: inherit; }
     font-weight: bold; background: rgba(255,0,0,0.1); color: #c0392b; border: 1px solid #c0392b;
 }
 .sub-close-btn:hover { background: #c0392b; color: white; }
-
-/* شريط الأخبار */
-.breaking-news-bar {
-    display: flex; align-items: center;
-    background: linear-gradient(135deg, rgba(196,139,76,0.06), rgba(196,139,76,0.02));
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    overflow: hidden; border-bottom: 1px solid rgba(196,139,76,0.1);
-}
-.breaking-fixed-badge {
-    flex-shrink: 0; padding: 8px 18px; background: var(--primary);
-    color: white; font-weight: 800; font-size: 0.85rem; letter-spacing: 1px;
-    border-radius: 0 0 12px 0; animation: badgeGlow 2s infinite;
-    box-shadow: 0 0 15px rgba(196,139,76,0.4);
-}
-.breaking-news-content { flex: 1; white-space: nowrap; overflow: hidden; position: relative; padding: 8px 0; }
-.breaking-item {
-    display: inline-block; padding: 0 15px;
-    animation: tickerScroll 30s linear infinite;
-    font-size: 0.85rem; font-weight: 500; color: var(--text);
-}
-.breaking-sep { display: inline-block; margin: 0 5px; color: var(--primary); font-weight: bold; }
-
-@keyframes tickerScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-@keyframes badgeGlow { 0%,100% { box-shadow: 0 0 15px rgba(196,139,76,0.4); } 50% { box-shadow: 0 0 25px rgba(196,139,76,0.7), 0 0 40px rgba(196,139,76,0.3); } }
 
 /* القوائم المنسدلة */
 .profile-dropdown, .notifications-dropdown {
@@ -272,9 +245,10 @@ button { cursor: pointer; font-family: inherit; }
 }
 .collapse-btn:hover { background: #e0e0e0; color: #333; }
 
-.post-author-name {
+.post-author {
     font-weight: 700; color: var(--primary); background: var(--primary-light);
-    padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer;
+    padding: 3px 12px; border-radius: 20px; font-size: 0.85rem;
+    cursor: default;
 }
 .post-subtitle { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin: 15px 0 8px; border-right: 3px solid var(--primary); padding-right: 10px; }
 .code-block { background: #1e1e1e; color: #d4d4d4; border-radius: var(--radius-sm); padding: 16px; overflow-x: auto; margin: 12px 0; font-family: 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; direction: ltr; text-align: left; }
@@ -322,6 +296,8 @@ button { cursor: pointer; font-family: inherit; }
 .copy-circle { background: #5f6368; color: white; }
 .save-circle { background: #fff3e0; color: #f57c00; }
 .save-circle.saved { background: #ffe0b2; color: #e65100; }
+.search-post-circle { background: #e8f0fe; color: #1a73e8; }
+.search-post-circle:hover { background: #d2e3fc; }
 
 /* القائمة المنسدلة */
 .dropdown-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); background: transparent; border: none; font-size: 1.3rem; color: var(--text-secondary); }
@@ -521,7 +497,7 @@ body.dark-mode .code-block { background: #000; }
 /* ---------- 13. تجاوب الجوال ---------- */
 @media (max-width: 768px) {
     .header-top { padding: 8px 12px; gap: 10px; }
-    .logo { font-size: 1.8rem; }
+    .logo { font-size: 1.3rem; }
     .main-layout { flex-direction: column; margin-top: 120px; padding: 0 10px; }
     .right-sidebar { position: static; flex: none; width: 100%; }
     .post-title { font-size: 1.1rem; }
@@ -535,7 +511,29 @@ body.dark-mode .code-block { background: #000; }
     .back-to-top-btn { bottom: 20px; }
 }
 
-/* ---------- 14. حركات ---------- */
+/* ---------- 14. شاشة التحميل ---------- */
+#preloader {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    z-index: 99999; display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+    opacity: 1; visibility: visible;
+}
+#preloader.hidden { opacity: 0; visibility: hidden; }
+.preloader-content { text-align: center; color: white; }
+.preloader-logo { font-family: 'Playfair Display', serif; font-size: 3rem; letter-spacing: 4px; color: #c48b4c; margin-bottom: 30px; animation: preloaderFadeIn 1s ease; text-shadow: 0 0 20px rgba(196,139,76,0.4); }
+.preloader-bar-container { width: 280px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 10px; margin: 0 auto 20px; overflow: hidden; }
+.preloader-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #c48b4c, #e0a86e, #c48b4c); border-radius: 10px; transition: width 0.3s ease; position: relative; }
+.preloader-bar::after { content: ''; position: absolute; right: 0; top: 0; width: 20px; height: 100%; background: white; opacity: 0.5; border-radius: 10px; animation: shimmer 1s infinite; }
+.preloader-number { font-size: 2rem; font-weight: 700; color: #c48b4c; margin-bottom: 15px; font-family: 'Cairo', sans-serif; }
+.preloader-dots { display: flex; justify-content: center; gap: 5px; font-size: 2rem; color: rgba(255,255,255,0.4); }
+.preloader-dots span { animation: dotPulse 1.4s infinite; }
+.preloader-dots span:nth-child(2) { animation-delay: 0.2s; }
+.preloader-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes preloaderFadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes dotPulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }
+
+/* ---------- 15. حركات عامة ---------- */
 @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 100px; } }
 @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
