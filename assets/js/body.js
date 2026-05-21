@@ -1,8 +1,6 @@
 // ============================================================
-//  ملف: body.js (مُحدّث - تم حذف أزرار القائمة)
-//  الوظيفة: عرض المقالات والتفاعلات (إعجاب، تعليق، مشاركة،
-//         بحث داخل المقال، شريط تقدم، نافذة الكاتب،
-//         فلترة الكاتب، ترجمة ديناميكية، تصفح)
+//  ملف: body.js (مُحدّث - قائمة ⋯ محذوفة العناصر، بحث أسفل البطاقة)
+//  الوظيفة: عرض المقالات والتفاعلات
 //  يعتمد على: firebase-config.js, utils.js, header.js
 // ============================================================
 
@@ -16,7 +14,6 @@ let currentPage = 1;
 const postsPerPage = 20;
 let totalPostsCount = 0;
 
-// ---------- تحميل المقالات ----------
 async function loadPosts(page = 1) {
   if (isLoadingPosts) return;
   isLoadingPosts = true;
@@ -32,10 +29,6 @@ async function loadPosts(page = 1) {
     if (window.currentCategoryId) baseQuery = baseQuery.where('category', '==', window.currentCategoryId);
     if (window.currentSubcategoryId) baseQuery = baseQuery.where('subcategory', '==', window.currentSubcategoryId);
     if (currentAuthorId) baseQuery = baseQuery.where('authorId', '==', currentAuthorId);
-    if (currentSearchQuery) {
-      baseQuery = baseQuery.where('title', '>=', currentSearchQuery)
-                           .where('title', '<=', currentSearchQuery + '\uf8ff');
-    }
 
     const countSnapshot = await baseQuery.get();
     totalPostsCount = countSnapshot.size;
@@ -79,7 +72,6 @@ async function loadPosts(page = 1) {
   isLoadingPosts = false;
 }
 
-// ---------- إنشاء بطاقة المقال ----------
 async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = 'Cairo') {
   const card = document.createElement('article');
   card.className = 'post-card';
@@ -152,7 +144,7 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
         <div class="post-options">
             <button class="icon-btn dropdown-btn" onclick="togglePostMenu(event, '${post.id}')">⋯</button>
             <div class="dropdown-menu" id="menu-${post.id}" style="display:none;">
-                <div class="dropdown-item search-in-post-btn" onclick="searchInPost('${post.id}')">🔎 بحث داخل المقال</div>
+                <div class="dropdown-item" onclick="showAuthorBio('${authorId}', '${post.id}')">👤 نبذة عن الكاتب</div>
             </div>
         </div>
     </div>
@@ -164,7 +156,7 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
     <div class="post-body" style="font-family: '${bodyFont}', sans-serif;">
         <h3 class="post-title" style="font-family: '${titleFont}', serif; cursor:pointer;" onclick="expandPost('${post.id}')">${post.title}</h3>
         <div class="post-meta">
-            ${authorName !== 'مجهول' ? `<span class="post-author-name" onclick="showAuthorBio('${authorId}', '${post.id}')">✍️ ${authorName}</span>` : `<span class="post-author">✍️ ${authorName}</span>`}
+            <span class="post-author">✍️ ${authorName}</span>
             <span class="post-date">🕒 ${postDate}</span>
             ${post.views ? `<span class="post-views">👁️ ${post.views} مشاهدة</span>` : ''}
         </div>
@@ -197,6 +189,7 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
         <span class="action-circle save-circle ${isPostSaved(post.id) ? 'saved' : ''}" onclick="toggleSavePost('${post.id}')" title="حفظ">
             ${isPostSaved(post.id) ? '🔖' : '🏷️'}
         </span>
+        <span class="action-circle search-post-circle" onclick="searchInPost('${post.id}')" title="بحث في المقال">🔍</span>
     </div>
 
     <div class="comments-section" id="comments-${post.id}" style="display:none;">
@@ -213,7 +206,7 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
   return card;
 }
 
-// ---------- توسيع/طي البطاقة ----------
+// ---------- دوال التفاعل (بدون تغيير) ----------
 function expandPost(postId) {
   const postBody = document.querySelector(`#post-${postId} .post-body`);
   const readMoreBtn = document.querySelector(`#post-${postId} .read-more-btn`);
@@ -233,7 +226,6 @@ function expandPost(postId) {
   }
 }
 
-// ---------- الإعجاب ----------
 async function toggleLike(postId) {
   try {
     const postRef = db.collection('posts').doc(postId);
@@ -274,7 +266,6 @@ async function updatePostCardLikes(postId) {
   } catch (e) {}
 }
 
-// ---------- التعليقات ----------
 function toggleComments(postId) {
   const section = document.getElementById(`comments-${postId}`);
   if (!section) return;
@@ -365,7 +356,6 @@ async function editComment(postId, commentId) {
     await refreshComments(postId);
 }
 
-// ---------- المشاركة والنسخ والحفظ ----------
 function getVisitorId() {
   let id = localStorage.getItem('visitorId');
   if (!id) { id = generateId(); localStorage.setItem('visitorId', id); }
@@ -416,7 +406,6 @@ function toggleSavePost(postId) {
   }
 }
 
-// ---------- ترجمة ----------
 function translatePost(postId, direction) {
   const url = `${window.location.origin}${window.location.pathname}?post=${postId}`;
   const sl = direction === 'ar2en' ? 'ar' : 'en';
@@ -545,18 +534,21 @@ function clearFilter() {
   loadPosts(1);
 }
 
-// ---------- فلترة التبويبات ----------
 function filterByCategory(catId) {
   currentPage = 1;
-  if (typeof handleTabClick === 'function') handleTabClick(new MouseEvent('click'), catId);
+  if (typeof activateTab === 'function') activateTab(catId, null);
   else { window.currentCategoryId = catId; window.currentSubcategoryId = null; loadPosts(1); }
 }
 function filterBySubcategory(catId, subId) {
   currentPage = 1;
-  if (typeof handleTabClick === 'function') { handleTabClick(new MouseEvent('click'), catId); setTimeout(() => { if (typeof selectSubcategory === 'function') selectSubcategory(subId); }, 100); }
+  if (typeof activateTab === 'function') activateTab(catId, subId);
   else { window.currentCategoryId = catId; window.currentSubcategoryId = subId; loadPosts(1); }
 }
-function searchPosts(query) { currentSearchQuery = query.trim(); currentPage = 1; loadPosts(1); }
+function searchPosts(query) {
+  currentSearchQuery = query.trim();
+  currentPage = 1;
+  loadPosts(1);
+}
 
 // ---------- شريط تقدم القراءة ----------
 function updateReadingProgress(postId) {
@@ -584,7 +576,6 @@ function setupReadingProgressObservers() {
 }
 setupReadingProgressObservers();
 
-// ---------- أزرار التصفح ----------
 function addPaginationControls(page, totalPages) {
   const oldPagination = document.getElementById('pagination-container');
   if (oldPagination) oldPagination.remove();
