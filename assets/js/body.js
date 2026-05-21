@@ -160,6 +160,7 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
                 <div class="dropdown-item highlight-text-btn" onclick="highlightSelection('${post.id}')">🖍️ تمييز النص</div>
                 <div class="dropdown-item show-references-btn" onclick="showReferences('${post.id}')">📊 عرض المصادر والمراجع</div>
                 <div class="dropdown-item" onclick="filterByAuthor('${authorId}')">📄 مقالات الكاتب</div>
+                <div class="dropdown-item" onclick="toggleFontSize('${post.id}')">🔤 تكبير/تصغير الخط</div>
                 <div class="dropdown-item" onclick="reportPost('${post.id}')">🚩 إبلاغ</div>
             </div>
         </div>
@@ -673,6 +674,27 @@ function filterBySubcategory(catId, subId) {
   else { window.currentCategoryId = catId; window.currentSubcategoryId = subId; loadPosts(1); }
 }
 function searchPosts(query) { currentSearchQuery = query.trim(); currentPage = 1; loadPosts(1); }
+
+// ---------- تكبير/تصغير الخط ----------
+function toggleFontSize(postId) {
+    const postContent = document.querySelector(`#post-${postId} .post-content`);
+    if (!postContent) return;
+    const currentSize = postContent.style.fontSize;
+    if (!currentSize || currentSize === '0.95rem') {
+        postContent.style.fontSize = '1.25rem';
+        postContent.style.lineHeight = '2';
+        showToast('🔤 حجم الخط: كبير', 'info', 1500);
+    } else if (currentSize === '1.25rem') {
+        postContent.style.fontSize = '1.5rem';
+        postContent.style.lineHeight = '2.2';
+        showToast('🔤 حجم الخط: كبير جداً', 'info', 1500);
+    } else {
+        postContent.style.fontSize = '0.95rem';
+        postContent.style.lineHeight = '1.8';
+        showToast('🔤 حجم الخط: عادي', 'info', 1500);
+    }
+    closeAllMenus();
+}
 
 // ---------- شريط تقدم القراءة ----------
 function updateReadingProgress(postId) {
