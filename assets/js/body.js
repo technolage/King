@@ -1,54 +1,59 @@
 // ============================================================
-//  ملف: body.js (مُحدّث - قائمة ⋯ محذوفة العناصر، بحث أسفل البطاقة)
+//  ملف: body.js (مُحدّث - فلترة محلية، بحث محلي، زر ⋯ يمين)
 //  الوظيفة: عرض المقالات والتفاعلات
 //  يعتمد على: firebase-config.js, utils.js, header.js
 // ============================================================
 
-let lastVisiblePost = null;
-let isLoadingPosts = false;
-let allPostsLoaded = false;
 let activeCommentPostId = null;
 let currentSearchQuery = '';
 let currentAuthorId = null;
 let currentPage = 1;
 const postsPerPage = 20;
 let totalPostsCount = 0;
+let allPosts = []; // تخزين جميع المقالات محليًا للفلترة والبحث
 
 async function loadPosts(page = 1) {
-  if (isLoadingPosts) return;
-  isLoadingPosts = true;
   currentPage = page;
-
   const feed = document.getElementById('posts-feed');
-  if (!feed) { isLoadingPosts = false; return; }
+  if (!feed) return;
 
   feed.innerHTML = '<div class="loading-spinner">⏳ جاري تحميل المقالات...</div>';
 
   try {
-    let baseQuery = db.collection('posts');
-    if (window.currentCategoryId) baseQuery = baseQuery.where('category', '==', window.currentCategoryId);
-    if (window.currentSubcategoryId) baseQuery = baseQuery.where('subcategory', '==', window.currentSubcategoryId);
-    if (currentAuthorId) baseQuery = baseQuery.where('authorId', '==', currentAuthorId);
+    const snapshot = await db.collection('posts').orderBy('date', 'desc').limit(100).get();
+    allPosts = [];
+    snapshot.forEach(doc => {
+      const post = doc.data();
+      post.id = doc.id;
+      allPosts.push(post);
+    });
 
-    const countSnapshot = await baseQuery.get();
-    totalPostsCount = countSnapshot.size;
-    const totalPages = Math.ceil(totalPostsCount / postsPerPage);
-
-    let query = baseQuery.orderBy('date', 'desc').limit(postsPerPage);
-    if (page > 1) {
-      const previousSnapshot = await baseQuery.orderBy('date', 'desc').limit((page - 1) * postsPerPage).get();
-      if (previousSnapshot.docs.length > 0) {
-        const lastVisible = previousSnapshot.docs[previousSnapshot.docs.length - 1];
-        query = query.startAfter(lastVisible);
-      }
+    // فلترة محلية حسب التبويبة أو الفرع
+    let filteredPosts = allPosts;
+    if (window.currentCategoryId) {
+      filteredPosts = filteredPosts.filter(p => p.category === window.currentCategoryId);
+    }
+    if (window.currentSubcategoryId) {
+      filteredPosts = filteredPosts.filter(p => p.subcategory === window.currentSubcategoryId);
+    }
+    if (currentAuthorId) {
+      filteredPosts = filteredPosts.filter(p => p.authorId === currentAuthorId);
+    }
+    if (currentSearchQuery) {
+      const q = currentSearchQuery.toLowerCase();
+      filteredPosts = filteredPosts.filter(p => p.title && p.title.toLowerCase().includes(q));
     }
 
-    const snapshot = await query.get();
+    totalPostsCount = filteredPosts.length;
+    const totalPages = Math.ceil(totalPostsCount / postsPerPage);
+
+    const start = (page - 1) * postsPerPage;
+    const pagePosts = filteredPosts.slice(start, start + postsPerPage);
+
     feed.innerHTML = '';
 
-    if (snapshot.empty) {
+    if (pagePosts.length === 0) {
       feed.innerHTML = `<div class="no-posts"><div class="no-posts-icon">📝</div><h3>لا توجد مقالات</h3><p>لم يتم العثور على أي مقال في هذه الصفحة.</p></div>`;
-      isLoadingPosts = false;
       return;
     }
 
@@ -56,8 +61,7 @@ async function loadPosts(page = 1) {
     const titleFont = settings.titleFont || 'Playfair Display';
     const bodyFont = settings.bodyFont || 'Cairo';
 
-    for (const doc of snapshot.docs) {
-      const post = doc.data(); post.id = doc.id;
+    for (const post of pagePosts) {
       const card = await createPostCard(post, titleFont, bodyFont);
       feed.appendChild(card);
     }
@@ -68,8 +72,6 @@ async function loadPosts(page = 1) {
     console.error('خطأ في تحميل المقالات:', error);
     feed.innerHTML = '<p class="error-message">⚠️ حدث خطأ أثناء تحميل المقالات.</p>';
   }
-
-  isLoadingPosts = false;
 }
 
 async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = 'Cairo') {
@@ -140,13 +142,13 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
 
   card.innerHTML = `
     <div class="post-header">
-        ${breadcrumbHTML ? `<div class="post-breadcrumb">${breadcrumbHTML}</div>` : ''}
         <div class="post-options">
             <button class="icon-btn dropdown-btn" onclick="togglePostMenu(event, '${post.id}')">⋯</button>
             <div class="dropdown-menu" id="menu-${post.id}" style="display:none;">
                 <div class="dropdown-item" onclick="showAuthorBio('${authorId}', '${post.id}')">👤 نبذة عن الكاتب</div>
             </div>
         </div>
+        ${breadcrumbHTML ? `<div class="post-breadcrumb">${breadcrumbHTML}</div>` : ''}
     </div>
 
     <div class="reading-progress-container" id="progress-container-${post.id}">
@@ -206,7 +208,7 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
   return card;
 }
 
-// ---------- دوال التفاعل (بدون تغيير) ----------
+// ---------- دوال التفاعل ----------
 function expandPost(postId) {
   const postBody = document.querySelector(`#post-${postId} .post-body`);
   const readMoreBtn = document.querySelector(`#post-${postId} .read-more-btn`);
