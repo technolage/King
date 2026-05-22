@@ -1,5 +1,5 @@
 /* ============================================================
-   ملف: style.css (كامل ومُحدّث - آخر تعديل: شاشة تحميل أصغر + تنسيق رابط الفوتر)
+   ملف: style.css (كامل ومُحدّث – هيدر مدمج + تبويبات أصغر)
    ============================================================ */
 
 /* ---------- 1. متغيرات CSS ---------- */
@@ -41,8 +41,13 @@ button { cursor: pointer; font-family: inherit; }
 #site-header {
     position: fixed; top: 0; left: 0; right: 0;
     background: var(--white); box-shadow: var(--shadow); z-index: 1000;
-    transition: background-image 0.5s ease;
+    transition: background-image 0.5s ease, opacity 0.3s ease;
 }
+#site-header.header-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
 #site-header.has-bg-image {
     background-size: cover !important;
     background-position: center center !important;
@@ -124,32 +129,57 @@ button { cursor: pointer; font-family: inherit; }
 .search-btn:hover { background: var(--primary-dark); }
 #searchClose { margin-right: 8px; color: #666; cursor: pointer; }
 
+/* تبويبات أصغر */
 .nav-container { border-top: 1px solid var(--border); padding: 0 20px; position: relative; }
 .nav-tabs {
-    display: flex; overflow-x: auto; gap: 4px; padding: 8px 0;
+    display: flex; overflow-x: auto; gap: 4px; padding: 6px 0;
     scroll-behavior: smooth; -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
 .nav-tabs::-webkit-scrollbar { display: none; }
 .tab-item {
-    padding: 8px 16px; border-radius: var(--radius-full); white-space: nowrap;
+    padding: 4px 12px; border-radius: var(--radius-full); white-space: nowrap;
     cursor: pointer; background: transparent; transition: var(--transition);
-    font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);
-    display: flex; align-items: center; gap: 5px; user-select: none;
+    font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);
 }
 .tab-item:hover { background: #e4e6eb; }
 .tab-item.active { background: var(--primary); color: white; }
 
-.subcategory-bar { padding: 6px 0 10px; border-top: 1px solid var(--border); animation: slideDown 0.3s ease; }
+.subcategory-bar { padding: 4px 0 8px; border-top: 1px solid var(--border); animation: slideDown 0.3s ease; }
 .subcategory-list { display: flex; gap: 6px; flex-wrap: wrap; }
 .sub-item {
-    padding: 6px 14px; border-radius: var(--radius-full); cursor: pointer;
-    font-size: 0.85rem; background: #f0f2f5; transition: var(--transition);
+    padding: 3px 10px; border-radius: var(--radius-full); cursor: pointer;
+    font-size: 0.75rem; background: #f0f2f5; transition: var(--transition);
 }
 .sub-item:hover, .sub-item.active { background: var(--primary); color: white; }
 .sub-close-btn {
     font-weight: bold; background: rgba(255,0,0,0.1); color: #c0392b; border: 1px solid #c0392b;
 }
 .sub-close-btn:hover { background: #c0392b; color: white; }
+
+/* هيدر مدمج (يظهر عند التمرير) */
+.compact-header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1001;
+    background: var(--white); box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 20px; height: 44px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0; transform: translateY(-100%);
+}
+.compact-header.visible { opacity: 1; transform: translateY(0); }
+.compact-header.hidden { opacity: 0; transform: translateY(-100%); pointer-events: none; }
+.compact-logo {
+    font-family: var(--font-title); font-size: 1.1rem; font-weight: 900;
+    cursor: pointer; color: var(--primary);
+}
+.compact-info { flex: 1; text-align: center; font-size: 0.78rem; color: var(--text-secondary); }
+.compact-icons { display: flex; gap: 6px; }
+.compact-icon {
+    width: 28px; height: 28px; font-size: 0.95rem;
+    background: var(--bg); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: var(--transition);
+}
+.compact-icon:hover { background: #d8dadf; }
 
 /* القوائم المنسدلة */
 .profile-dropdown, .notifications-dropdown {
@@ -177,7 +207,7 @@ button { cursor: pointer; font-family: inherit; }
 .profile-dropdown-divider { height: 1px; background: var(--border); margin: 6px 0; }
 
 /* ---------- 4. التخطيط الرئيسي ---------- */
-.main-layout { display: flex; max-width: 1100px; margin: 130px auto 40px; padding: 0 20px; gap: 20px; min-height: 60vh; }
+.main-layout { display: flex; max-width: 1100px; margin: 120px auto 40px; padding: 0 20px; gap: 20px; min-height: 60vh; }
 .feed { flex: 1; display: flex; flex-direction: column; gap: 16px; }
 .right-sidebar { flex: 0 0 300px; position: sticky; top: 80px; align-self: flex-start; }
 .sticky-widget { background: var(--white); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
@@ -390,9 +420,6 @@ mark.user-highlight:hover { background: #fdd835; }
     transition: transform 0.3s; white-space: normal;
 }
 .footer-horizontal-card:hover { transform: translateY(-4px); }
-.footer-horizontal-card a {
-    display: block; color: inherit; text-decoration: none;
-}
 .footer-card-image { width: 100%; height: 120px; object-fit: cover; }
 .footer-card-content { padding: 10px; }
 .footer-card-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 5px; line-height: 1.3; color: var(--text); }
@@ -510,19 +537,18 @@ body.dark-mode .code-block { background: #000; }
 .preloader-content { text-align: center; color: white; }
 .preloader-logo {
     font-family: 'Playfair Display', serif;
-    font-size: 2.2rem;               /* أصغر */
+    font-size: 2.2rem;
     letter-spacing: 3px;
     color: #c48b4c;
-    margin-bottom: 20px;             /* أقل */
+    margin-bottom: 20px;
     animation: preloaderFadeIn 1s ease;
     text-shadow: 0 0 15px rgba(196,139,76,0.4);
 }
 .preloader-bar-container {
-    width: 220px;                    /* أضيق */
-    height: 3px;                     /* أرفع قليلاً */
+    width: 220px; height: 3px;
     background: rgba(255,255,255,0.15);
     border-radius: 8px;
-    margin: 0 auto 15px;            /* أقل */
+    margin: 0 auto 15px;
     overflow: hidden;
 }
 .preloader-bar {
@@ -540,15 +566,14 @@ body.dark-mode .code-block { background: #000; }
     animation: shimmer 1s infinite;
 }
 .preloader-number {
-    font-size: 1.5rem;               /* أصغر */
-    font-weight: 700;
+    font-size: 1.5rem; font-weight: 700;
     color: #c48b4c;
-    margin-bottom: 10px;            /* أقل */
+    margin-bottom: 10px;
     font-family: 'Cairo', sans-serif;
 }
 .preloader-dots {
     display: flex; justify-content: center; gap: 4px;
-    font-size: 1.4rem;               /* أصغر */
+    font-size: 1.4rem;
     color: rgba(255,255,255,0.4);
 }
 .preloader-dots span { animation: dotPulse 1.4s infinite; }
