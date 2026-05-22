@@ -1,7 +1,5 @@
 // ============================================================
-//  ملف: body.js (مُحدّث - فلترة محلية، بحث محلي، زر ⋯ يمين)
-//  الوظيفة: عرض المقالات والتفاعلات
-//  يعتمد على: firebase-config.js, utils.js, header.js
+//  ملف: body.js (مُحدّث - إصلاح نبذة الكاتب + فلترة محلية)
 // ============================================================
 
 let activeCommentPostId = null;
@@ -10,7 +8,7 @@ let currentAuthorId = null;
 let currentPage = 1;
 const postsPerPage = 20;
 let totalPostsCount = 0;
-let allPosts = []; // تخزين جميع المقالات محليًا للفلترة والبحث
+let allPosts = [];
 
 async function loadPosts(page = 1) {
   currentPage = page;
@@ -28,7 +26,6 @@ async function loadPosts(page = 1) {
       allPosts.push(post);
     });
 
-    // فلترة محلية حسب التبويبة أو الفرع
     let filteredPosts = allPosts;
     if (window.currentCategoryId) {
       filteredPosts = filteredPosts.filter(p => p.category === window.currentCategoryId);
@@ -208,7 +205,6 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
   return card;
 }
 
-// ---------- دوال التفاعل ----------
 function expandPost(postId) {
   const postBody = document.querySelector(`#post-${postId} .post-body`);
   const readMoreBtn = document.querySelector(`#post-${postId} .read-more-btn`);
@@ -420,7 +416,6 @@ function togglePostMenu(event, postId) { event.stopPropagation(); closeAllMenus(
 function closeAllMenus() { document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); }
 document.addEventListener('click', () => closeAllMenus());
 
-// ---------- البحث داخل المقال ----------
 function searchInPost(postId) {
   document.querySelectorAll('.search-in-post-box').forEach(b => b.style.display = 'none');
   clearHighlights(postId);
@@ -474,7 +469,6 @@ function clearHighlights(postId) {
   });
 }
 
-// ---------- نافذة الكاتب ----------
 async function showAuthorBio(authorId, postId) {
   if (!authorId) return;
   document.querySelectorAll('.author-popup').forEach(p => p.remove());
@@ -485,8 +479,9 @@ async function showAuthorBio(authorId, postId) {
   } catch (e) { return; }
   const card = document.getElementById(`post-${postId}`);
   if (!card) return;
-  const btn = card.querySelector('.post-author-name');
-  if (!btn) return;
+  // استخدام post-header كموقع احتياطي للنبذة
+  const anchor = card.querySelector('.post-header');
+  if (!anchor) return;
   const popup = document.createElement('div');
   popup.className = 'author-popup horizontal';
   popup.innerHTML = `
@@ -500,7 +495,7 @@ async function showAuthorBio(authorId, postId) {
         <p>${bio}</p>
       </div>
     </div>`;
-  const rect = btn.getBoundingClientRect();
+  const rect = anchor.getBoundingClientRect();
   popup.style.position = 'absolute'; popup.style.zIndex = '2000';
   popup.style.top = (rect.bottom + window.scrollY + 5) + 'px';
   popup.style.left = (rect.left + window.scrollX) + 'px';
@@ -513,7 +508,6 @@ async function showAuthorBio(authorId, postId) {
   }, 10);
 }
 
-// ---------- فلترة الكاتب ----------
 function filterByAuthor(authorId) {
   if (!authorId) return;
   currentAuthorId = authorId;
@@ -552,7 +546,6 @@ function searchPosts(query) {
   loadPosts(1);
 }
 
-// ---------- شريط تقدم القراءة ----------
 function updateReadingProgress(postId) {
     const postBody = document.querySelector(`#post-${postId} .post-body`);
     const progressBar = document.getElementById(`progress-${postId}`);
