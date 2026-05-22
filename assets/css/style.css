@@ -1,10 +1,5 @@
 /* ============================================================
-   ملف: style.css (كامل ومُحدّث)
-   الوظيفة: جميع تنسيقات الواجهة الأمامية
-   يشمل: الهيدر، البطاقات، التعليقات، الفوتر، الوضع الليلي،
-         أنواع المحتوى، الأيقونات، شريط التقدم، نافذة الكاتب،
-         أزرار التمرير المزدوجة، الصفحات الثابتة، أزرار التصفح،
-         Toast، شاشة التحميل
+   ملف: style.css (كامل ومُحدّث - آخر تعديل: شاشة تحميل أصغر + تنسيق رابط الفوتر)
    ============================================================ */
 
 /* ---------- 1. متغيرات CSS ---------- */
@@ -395,21 +390,13 @@ mark.user-highlight:hover { background: #fdd835; }
     transition: transform 0.3s; white-space: normal;
 }
 .footer-horizontal-card:hover { transform: translateY(-4px); }
+.footer-horizontal-card a {
+    display: block; color: inherit; text-decoration: none;
+}
 .footer-card-image { width: 100%; height: 120px; object-fit: cover; }
 .footer-card-content { padding: 10px; }
-.footer-card-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 5px; line-height: 1.3; }
+.footer-card-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 5px; line-height: 1.3; color: var(--text); }
 .footer-card-meta { font-size: 0.75rem; color: var(--text-secondary); }
-
-.scroll-arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: var(--primary); color: white; border: none;
-    border-radius: 50%; width: 36px; height: 36px; font-size: 1.2rem;
-    cursor: pointer; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    transition: 0.3s; display: block;
-}
-.scroll-arrow:hover { background: var(--primary-dark); }
-.scroll-arrow-left { left: 5px; }
-.scroll-arrow-right { right: 5px; }
 
 .footer-static-pages { margin: 20px 0; text-align: center; }
 .footer-static-pages h4 { color: var(--primary); margin-bottom: 10px; }
@@ -511,7 +498,7 @@ body.dark-mode .code-block { background: #000; }
     .back-to-top-btn { bottom: 20px; }
 }
 
-/* ---------- 14. شاشة التحميل ---------- */
+/* ---------- 14. شاشة التحميل (مُصغرة) ---------- */
 #preloader {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
@@ -521,16 +508,53 @@ body.dark-mode .code-block { background: #000; }
 }
 #preloader.hidden { opacity: 0; visibility: hidden; }
 .preloader-content { text-align: center; color: white; }
-.preloader-logo { font-family: 'Playfair Display', serif; font-size: 3rem; letter-spacing: 4px; color: #c48b4c; margin-bottom: 30px; animation: preloaderFadeIn 1s ease; text-shadow: 0 0 20px rgba(196,139,76,0.4); }
-.preloader-bar-container { width: 280px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 10px; margin: 0 auto 20px; overflow: hidden; }
-.preloader-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #c48b4c, #e0a86e, #c48b4c); border-radius: 10px; transition: width 0.3s ease; position: relative; }
-.preloader-bar::after { content: ''; position: absolute; right: 0; top: 0; width: 20px; height: 100%; background: white; opacity: 0.5; border-radius: 10px; animation: shimmer 1s infinite; }
-.preloader-number { font-size: 2rem; font-weight: 700; color: #c48b4c; margin-bottom: 15px; font-family: 'Cairo', sans-serif; }
-.preloader-dots { display: flex; justify-content: center; gap: 5px; font-size: 2rem; color: rgba(255,255,255,0.4); }
+.preloader-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;               /* أصغر */
+    letter-spacing: 3px;
+    color: #c48b4c;
+    margin-bottom: 20px;             /* أقل */
+    animation: preloaderFadeIn 1s ease;
+    text-shadow: 0 0 15px rgba(196,139,76,0.4);
+}
+.preloader-bar-container {
+    width: 220px;                    /* أضيق */
+    height: 3px;                     /* أرفع قليلاً */
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    margin: 0 auto 15px;            /* أقل */
+    overflow: hidden;
+}
+.preloader-bar {
+    width: 0%; height: 100%;
+    background: linear-gradient(90deg, #c48b4c, #e0a86e, #c48b4c);
+    border-radius: 8px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+.preloader-bar::after {
+    content: ''; position: absolute; right: 0; top: 0;
+    width: 15px; height: 100%;
+    background: white; opacity: 0.5;
+    border-radius: 8px;
+    animation: shimmer 1s infinite;
+}
+.preloader-number {
+    font-size: 1.5rem;               /* أصغر */
+    font-weight: 700;
+    color: #c48b4c;
+    margin-bottom: 10px;            /* أقل */
+    font-family: 'Cairo', sans-serif;
+}
+.preloader-dots {
+    display: flex; justify-content: center; gap: 4px;
+    font-size: 1.4rem;               /* أصغر */
+    color: rgba(255,255,255,0.4);
+}
 .preloader-dots span { animation: dotPulse 1.4s infinite; }
 .preloader-dots span:nth-child(2) { animation-delay: 0.2s; }
 .preloader-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes preloaderFadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes preloaderFadeIn { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes dotPulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }
 
 /* ---------- 15. حركات عامة ---------- */
