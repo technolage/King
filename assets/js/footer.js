@@ -1,5 +1,5 @@
 // ============================================================
-//  ملف: footer.js (مُدمَج - كامل ومُحدّث)
+//  ملف: footer.js (مُحدّث - بدون أسهم)
 //  الوظيفة: بناء تذييل الموقع (الفوتر) وإدارته
 //  يشمل: تبويبات أفقية مع تمرير لا نهائي، أزرار تمرير مزدوجة،
 //         الصفحات الثابتة، السنة التلقائية، بوابة الأدمن
@@ -12,7 +12,6 @@ let footerClickTimer = null;
 let footerScrollPositions = {};
 let footerLastVisible = {};
 
-// ---------- الدالة الرئيسية ----------
 async function buildFooter() {
   const footerDiv = document.getElementById('site-footer');
   if (!footerDiv) { console.warn('⚠️ عنصر site-footer غير موجود'); return; }
@@ -34,13 +33,8 @@ async function buildFooter() {
           <button class="footer-tab ${footerActiveTab === 'related' ? 'active' : ''}" onclick="switchFooterTab('related')" style="${footerActiveTab === 'related' ? 'border-bottom-color: ' + primaryColor : ''}">🔗 مقالات ذات صلة</button>
         </div>
 
-        <!-- شريط أفقي للتبويب النشط -->
         <div class="footer-horizontal-scroll" id="footerHorizontalScroll">
-          <div class="horizontal-scroll-wrapper" id="horizontalScrollWrapper">
-            <!-- المقالات ستظهر هنا أفقيًا -->
-          </div>
-          <button class="scroll-arrow scroll-arrow-left" id="scrollArrowLeft" onclick="scrollHorizontal(-300)">◀</button>
-          <button class="scroll-arrow scroll-arrow-right" id="scrollArrowRight" onclick="scrollHorizontal(300)">▶</button>
+          <div class="horizontal-scroll-wrapper" id="horizontalScrollWrapper"></div>
         </div>
       </div>
 
@@ -69,7 +63,6 @@ async function buildFooter() {
   console.log("✅ الفوتر تم بناؤه بنجاح");
 }
 
-// ---------- ربط الأحداث ----------
 function attachFooterEvents() {
   const yearSpan = document.getElementById('copyrightYear');
   if (yearSpan) yearSpan.addEventListener('click', handleYearClick);
@@ -77,7 +70,6 @@ function attachFooterEvents() {
   handleScrollVisibility();
 }
 
-// ---------- تبويبات الفوتر الأفقية ----------
 async function switchFooterTab(tab) {
   const container = document.getElementById('footerHorizontalScroll');
   if (container) {
@@ -104,7 +96,7 @@ async function loadFooterPosts(type) {
       case 'latest': query = query.orderBy('date', 'desc').limit(20); break;
       case 'mostViewed': query = query.orderBy('views', 'desc').limit(20); break;
       case 'related':
-        if (window.currentCategoryId) query = query.where('category', '==', currentCategoryId).orderBy('date', 'desc').limit(20);
+        if (window.currentCategoryId) query = query.where('category', '==', window.currentCategoryId).orderBy('date', 'desc').limit(20);
         else query = query.orderBy('date', 'desc').limit(20);
         break;
     }
@@ -122,16 +114,12 @@ async function loadFooterPosts(type) {
 
     footerLastVisible[type] = snapshot.docs[snapshot.docs.length - 1];
 
-    // استعادة التمرير
     if (container && footerScrollPositions[type]) {
       container.scrollLeft = footerScrollPositions[type];
     }
-    updateScrollArrows(container);
 
-    // تحميل المزيد عند الوصول للنهاية
     if (container) {
       container.onscroll = async function() {
-        updateScrollArrows(container);
         const scrollLeft = container.scrollLeft;
         const scrollWidth = container.scrollWidth;
         const clientWidth = container.clientWidth;
@@ -154,7 +142,7 @@ async function loadMoreFooterPosts(type, wrapper) {
       case 'latest': query = query.orderBy('date', 'desc'); break;
       case 'mostViewed': query = query.orderBy('views', 'desc'); break;
       case 'related':
-        if (window.currentCategoryId) query = query.where('category', '==', currentCategoryId).orderBy('date', 'desc');
+        if (window.currentCategoryId) query = query.where('category', '==', window.currentCategoryId).orderBy('date', 'desc');
         else query = query.orderBy('date', 'desc');
         break;
     }
@@ -169,8 +157,6 @@ async function loadMoreFooterPosts(type, wrapper) {
       const post = doc.data(); post.id = doc.id;
       wrapper.appendChild(createFooterHorizontalCard(post));
     });
-    const container = document.getElementById('footerHorizontalScroll');
-    updateScrollArrows(container);
   } catch (e) { console.error(e); }
 }
 
@@ -190,23 +176,6 @@ function createFooterHorizontalCard(post) {
   return card;
 }
 
-function scrollHorizontal(amount) {
-  const container = document.getElementById('footerHorizontalScroll');
-  if (container) {
-    container.scrollBy({ left: amount, behavior: 'smooth' });
-  }
-}
-
-function updateScrollArrows(container) {
-  if (!container) return;
-  const leftArrow = document.getElementById('scrollArrowLeft');
-  const rightArrow = document.getElementById('scrollArrowRight');
-  if (!leftArrow || !rightArrow) return;
-  leftArrow.style.display = container.scrollLeft > 10 ? 'block' : 'none';
-  rightArrow.style.display = container.scrollLeft + container.clientWidth < container.scrollWidth - 10 ? 'block' : 'none';
-}
-
-// ---------- الصفحات الثابتة ----------
 async function loadStaticPagesInFooter() {
   const container = document.getElementById('footerStaticPages');
   if (!container) return;
@@ -247,7 +216,6 @@ async function loadStaticPagesInFooter() {
 function showStaticPagePopup(title, content) {
   const existing = document.querySelector('.static-page-popup-overlay');
   if (existing) existing.remove();
-
   const overlay = document.createElement('div');
   overlay.className = 'static-page-popup-overlay';
   overlay.innerHTML = `
@@ -264,12 +232,10 @@ function showStaticPagePopup(title, content) {
   });
 }
 
-// ---------- بوابة الأدمن ----------
 function handleYearClick() {
   footerClickCount++;
   if (footerClickTimer) clearTimeout(footerClickTimer);
   footerClickTimer = setTimeout(() => { footerClickCount = 0; }, 1500);
-
   if (footerClickCount === 3) {
     footerClickCount = 0; clearTimeout(footerClickTimer);
     const password = prompt('🔐 أدخل كلمة المرور للوحة التحكم:');
@@ -280,45 +246,25 @@ function handleYearClick() {
   }
 }
 
-function checkAdminSession() { return localStorage.getItem('adminSession') !== null; }
-function logoutAdmin() { localStorage.removeItem('adminSession'); window.location.href = 'index.html'; }
-
-// ---------- أزرار التمرير المزدوجة ----------
 function handleScrollVisibility() {
   const downBtn = document.getElementById('scrollDownBtn');
   const upBtn = document.getElementById('backToTopBtn');
   if (!downBtn || !upBtn) return;
   const scrollY = window.scrollY;
   const pageHeight = document.body.scrollHeight - window.innerHeight;
-  if (scrollY < 200) {
-    downBtn.classList.add('show');
-    upBtn.classList.remove('show');
-  } else if (scrollY > pageHeight - 200) {
-    downBtn.classList.remove('show');
-    upBtn.classList.add('show');
-  } else {
-    downBtn.classList.remove('show');
-    upBtn.classList.add('show');
-  }
+  if (scrollY < 200) { downBtn.classList.add('show'); upBtn.classList.remove('show'); }
+  else if (scrollY > pageHeight - 200) { downBtn.classList.remove('show'); upBtn.classList.add('show'); }
+  else { downBtn.classList.remove('show'); upBtn.classList.add('show'); }
 }
 
-function scrollToTop() {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function scrollToBottom() {
-  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-}
-
-// ---------- السنة التلقائية ----------
+function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function scrollToBottom() { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }
 function startYearAutoUpdate() {
   const yearSpan = document.getElementById('copyrightYear');
   if (!yearSpan) return;
   setInterval(() => {
     const currentYear = new Date().getFullYear();
-    if (yearSpan.textContent != currentYear) {
-      yearSpan.textContent = currentYear;
-    }
+    if (yearSpan.textContent != currentYear) yearSpan.textContent = currentYear;
   }, 60000);
 }
 
