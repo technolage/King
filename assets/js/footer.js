@@ -1,6 +1,9 @@
 // ============================================================
-//  ملف: footer.js (مُحدّث - بطاقات تُفتح كروابط)
+//  ملف: footer.js (مُحدّث - إصلاح عرض الصفحات الثابتة)
 //  الوظيفة: بناء تذييل الموقع (الفوتر) وإدارته
+//  يشمل: تبويبات أفقية، أزرار تمرير مزدوجة، الصفحات الثابتة،
+//         السنة التلقائية، بوابة الأدمن
+//  يعتمد على: firebase-config.js, utils.js
 // ============================================================
 
 let footerActiveTab = 'latest';
@@ -178,17 +181,21 @@ function createFooterHorizontalCard(post) {
 async function loadStaticPagesInFooter() {
   const container = document.getElementById('footerStaticPages');
   if (!container) return;
+  
   try {
     const snapshot = await db.collection('static_pages')
       .where('visible', '==', true)
       .orderBy('createdAt', 'desc')
       .get();
+    
     if (snapshot.empty) {
       container.innerHTML = '';
       return;
     }
+    
     container.innerHTML = '<h4>صفحات</h4><div class="static-pages-links"></div>';
     const linksContainer = container.querySelector('.static-pages-links');
+    
     snapshot.docs.forEach(doc => {
       const page = doc.data();
       if (page.link) {
@@ -215,6 +222,7 @@ async function loadStaticPagesInFooter() {
 function showStaticPagePopup(title, content) {
   const existing = document.querySelector('.static-page-popup-overlay');
   if (existing) existing.remove();
+  
   const overlay = document.createElement('div');
   overlay.className = 'static-page-popup-overlay';
   overlay.innerHTML = `
@@ -235,13 +243,17 @@ function handleYearClick() {
   footerClickCount++;
   if (footerClickTimer) clearTimeout(footerClickTimer);
   footerClickTimer = setTimeout(() => { footerClickCount = 0; }, 1500);
+  
   if (footerClickCount === 3) {
-    footerClickCount = 0; clearTimeout(footerClickTimer);
+    footerClickCount = 0;
+    clearTimeout(footerClickTimer);
     const password = prompt('🔐 أدخل كلمة المرور للوحة التحكم:');
     if (password === '@...C772809978_1998...@') {
       localStorage.setItem('adminSession', btoa(Date.now() + '_' + Math.random()));
       window.location.href = 'admin.html';
-    } else if (password !== null) { showToast('❌ كلمة المرور غير صحيحة', 'error'); }
+    } else if (password !== null) {
+      showToast('❌ كلمة المرور غير صحيحة', 'error');
+    }
   }
 }
 
@@ -249,21 +261,38 @@ function handleScrollVisibility() {
   const downBtn = document.getElementById('scrollDownBtn');
   const upBtn = document.getElementById('backToTopBtn');
   if (!downBtn || !upBtn) return;
+  
   const scrollY = window.scrollY;
   const pageHeight = document.body.scrollHeight - window.innerHeight;
-  if (scrollY < 200) { downBtn.classList.add('show'); upBtn.classList.remove('show'); }
-  else if (scrollY > pageHeight - 200) { downBtn.classList.remove('show'); upBtn.classList.add('show'); }
-  else { downBtn.classList.remove('show'); upBtn.classList.add('show'); }
+  
+  if (scrollY < 200) {
+    downBtn.classList.add('show');
+    upBtn.classList.remove('show');
+  } else if (scrollY > pageHeight - 200) {
+    downBtn.classList.remove('show');
+    upBtn.classList.add('show');
+  } else {
+    downBtn.classList.remove('show');
+    upBtn.classList.add('show');
+  }
 }
 
-function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
-function scrollToBottom() { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToBottom() {
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
 function startYearAutoUpdate() {
   const yearSpan = document.getElementById('copyrightYear');
   if (!yearSpan) return;
   setInterval(() => {
     const currentYear = new Date().getFullYear();
-    if (yearSpan.textContent != currentYear) yearSpan.textContent = currentYear;
+    if (yearSpan.textContent != currentYear) {
+      yearSpan.textContent = currentYear;
+    }
   }, 60000);
 }
 
