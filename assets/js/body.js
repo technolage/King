@@ -1,5 +1,7 @@
 // ============================================================
-//  ملف: body.js (مُحدّث - إصلاح نبذة الكاتب + فلترة محلية)
+//  ملف: body.js (مُحدّث - عداد مشاهدات)
+//  الوظيفة: عرض المقالات والتفاعلات
+//  يعتمد على: firebase-config.js, utils.js, header.js
 // ============================================================
 
 let activeCommentPostId = null;
@@ -205,10 +207,13 @@ async function createPostCard(post, titleFont = 'Playfair Display', bodyFont = '
   return card;
 }
 
+// ---------- دوال التفاعل ----------
 function expandPost(postId) {
   const postBody = document.querySelector(`#post-${postId} .post-body`);
   const readMoreBtn = document.querySelector(`#post-${postId} .read-more-btn`);
   const collapseBtn = document.querySelector(`#post-${postId} .collapse-btn`);
+  const card = document.getElementById(`post-${postId}`);
+
   if (postBody) {
     if (postBody.classList.contains('expanded')) {
       postBody.classList.remove('expanded');
@@ -218,9 +223,35 @@ function expandPost(postId) {
       postBody.classList.add('expanded');
       if (readMoreBtn) readMoreBtn.style.display = 'none';
       if (collapseBtn) collapseBtn.style.display = 'inline-flex';
-      const card = document.getElementById(`post-${postId}`);
-      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // زيادة عداد المشاهدات إذا لم تكن البطاقة قد وُسّعت من قبل
+        if (!card.dataset.expanded) {
+          card.dataset.expanded = 'true';
+          incrementViewCount(postId);
+        }
+      }
     }
+  }
+}
+
+async function incrementViewCount(postId) {
+  try {
+    const postRef = db.collection('posts').doc(postId);
+    await postRef.update({
+      views: firebase.firestore.FieldValue.increment(1)
+    });
+    // تحديث العداد في الواجهة
+    const card = document.getElementById(`post-${postId}`);
+    if (card) {
+      const viewsSpan = card.querySelector('.post-views');
+      if (viewsSpan) {
+        const currentViews = parseInt(viewsSpan.textContent) || 0;
+        viewsSpan.textContent = `👁️ ${currentViews + 1} مشاهدة`;
+      }
+    }
+  } catch (e) {
+    console.error('خطأ في تحديث المشاهدات:', e);
   }
 }
 
@@ -479,7 +510,6 @@ async function showAuthorBio(authorId, postId) {
   } catch (e) { return; }
   const card = document.getElementById(`post-${postId}`);
   if (!card) return;
-  // استخدام post-header كموقع احتياطي للنبذة
   const anchor = card.querySelector('.post-header');
   if (!anchor) return;
   const popup = document.createElement('div');
