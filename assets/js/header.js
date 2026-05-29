@@ -1,26 +1,72 @@
 // ============================================================
-//  ملف: header.js (مُحدّث – هيدر متكيف مع التمرير + تبويبات أصغر)
+//  ملف: header.js (كامل ومُحدّث – 20 تبويبة جاهزة + بناء تلقائي)
+//  الوظيفة: بناء الهيدر وإدارة التبويبات والبحث والوضع الليلي
+//  يعتمد على: firebase-config.js, utils.js
 // ============================================================
 
 window.currentCategoryId = null;
 window.currentSubcategoryId = null;
 let categoriesData = [];
 
+// ---------- مصفوفة التبويبات الثابتة (تُستخدم عند أول تشغيل) ----------
+const DEFAULT_CATEGORIES = [
+    { name: 'التاريخ الإسلامي', icon: '🕌', subcategories: ['الخلافة الراشدة', 'الدولة الأموية', 'الدولة العباسية', 'الأندلس', 'الدولة العثمانية', 'الفتوحات الإسلامية', 'شخصيات إسلامية', 'حضارة إسلامية', 'تاريخ المماليك', 'تاريخ المغول', 'التاريخ الفاطمي', 'تاريخ السلاجقة'] },
+    { name: 'الحضارات القديمة', icon: '🏛️', subcategories: ['مصر القديمة', 'بلاد الرافدين', 'الحضارة الإغريقية', 'الإمبراطورية الرومانية', 'الحضارة الفارسية', 'حضارة المايا', 'حضارة الأنكا', 'آثار', 'تاريخ الصين القديم', 'تاريخ الهند القديم', 'الحضارة الفينيقية', 'تاريخ اليابان القديم'] },
+    { name: 'الحروب والصراعات', icon: '⚔️', subcategories: ['الحرب العالمية الأولى', 'الحرب العالمية الثانية', 'الحروب الصليبية', 'حرب فيتنام', 'حروب نابليون', 'معارك إسلامية', 'حروب حديثة', 'صراعات الشرق الأوسط', 'الحرب الباردة', 'حرب الخليج', 'الحروب الأهلية', 'تاريخ الأسلحة'] },
+    { name: 'شخصيات تاريخية', icon: '👤', subcategories: ['قادة', 'علماء', 'فلاسفة', 'مستكشفون', 'ملوك', 'رؤساء', 'فنانون', 'أدباء', 'مخترعون', 'مصلحون', 'مجددون', 'أعلام'] },
+    { name: 'العلوم والاكتشافات', icon: '🔬', subcategories: ['تاريخ الطب', 'تاريخ الفلك', 'تاريخ الرياضيات', 'تاريخ الفيزياء', 'تاريخ الكيمياء', 'اكتشافات جغرافية', 'اختراعات', 'تكنولوجيا قديمة', 'تاريخ الهندسة', 'تاريخ الطاقة', 'تاريخ الزراعة', 'تاريخ النقل'] },
+    { name: 'التاريخ الأوروبي', icon: '🏰', subcategories: ['العصور الوسطى', 'عصر النهضة', 'الثورة الصناعية', 'تاريخ بريطانيا', 'تاريخ فرنسا', 'تاريخ ألمانيا', 'تاريخ روسيا', 'تاريخ إيطاليا', 'تاريخ إسبانيا', 'تاريخ اليونان', 'تاريخ البرتغال', 'تاريخ هولندا'] },
+    { name: 'التاريخ المعاصر', icon: '📰', subcategories: ['القرن العشرين', 'تفكك الاتحاد السوفيتي', 'العولمة', 'تاريخ الإنترنت', 'أحداث 11 سبتمبر', 'الربيع العربي', 'جائحة كورونا', 'تاريخ حديث', 'تاريخ الأمم المتحدة', 'حقوق الإنسان', 'تاريخ البيئة', 'تاريخ الفضاء'] },
+    { name: 'التاريخ الأفريقي', icon: '🌍', subcategories: ['مملكة غانا', 'مملكة مالي', 'تاريخ إثيوبيا', 'تاريخ المغرب', 'تاريخ الجزائر', 'الاستعمار الأفريقي', 'تاريخ تونس', 'تاريخ ليبيا', 'تاريخ جنوب أفريقيا', 'تاريخ نيجيريا', 'تاريخ كينيا', 'تاريخ السودان'] },
+    { name: 'الفن والعمارة', icon: '🎨', subcategories: ['العمارة الإسلامية', 'العمارة القوطية', 'عصر النهضة الفني', 'الفن الفرعوني', 'الفن الإغريقي', 'الفن الروماني', 'الموسيقى الكلاسيكية', 'تاريخ المسرح', 'تاريخ السينما', 'تاريخ الرقص', 'تاريخ الأوبرا', 'تاريخ التصوير'] },
+    { name: 'التاريخ الاقتصادي', icon: '💰', subcategories: ['طريق الحرير', 'تاريخ التجارة', 'تاريخ النفط', 'تاريخ العملات', 'تاريخ البنوك', 'تاريخ الزراعة', 'تاريخ البورصة', 'اقتصاد الحروب', 'تاريخ الضرائب', 'تاريخ الصناعة', 'تاريخ العبودية', 'تاريخ الإقطاع'] },
+    { name: 'الأديان والمعتقدات', icon: '☸️', subcategories: ['تاريخ المسيحية', 'تاريخ اليهودية', 'تاريخ البوذية', 'تاريخ الهندوسية', 'تاريخ الإسلام', 'أساطير', 'طقوس', 'كتب مقدسة'] },
+    { name: 'الاستكشاف والملاحة', icon: '⛵', subcategories: ['المستكشفون', 'طرق التجارة', 'اكتشاف أمريكا', 'الملاحة العربية', 'السفن', 'الخرائط', 'المحيطات', 'القطبين'] },
+    { name: 'تاريخ الرياضة', icon: '⚽', subcategories: ['الألعاب الأولمبية', 'تاريخ كرة القدم', 'تاريخ الملاكمة', 'تاريخ الفروسية', 'رياضات قديمة', 'تاريخ التنس', 'تاريخ السباحة', 'تاريخ السيارات'] },
+    { name: 'تاريخ التكنولوجيا', icon: '💻', subcategories: ['تاريخ الحاسوب', 'تاريخ الهاتف', 'تاريخ الإنترنت', 'تاريخ الطيران', 'تاريخ الطباعة', 'تاريخ الكهرباء', 'تاريخ السكك الحديدية', 'تاريخ الإذاعة'] },
+    { name: 'الكوارث والأوبئة', icon: '🦠', subcategories: ['الطاعون', 'الإنفلونزا الإسبانية', 'المجاعات', 'الزلازل', 'البراكين', 'الأعاصير', 'الحرائق الكبرى', 'الكوارث النووية'] },
+    { name: 'الثورات والانتفاضات', icon: '✊', subcategories: ['الثورة الفرنسية', 'الثورة البلشفية', 'الثورة الصناعية', 'الربيع العربي', 'ثورات الاستقلال', 'الثورة الأمريكية', 'ثورة المكسيك', 'ثورات 1848'] },
+    { name: 'تاريخ القانون والحكم', icon: '⚖️', subcategories: ['القوانين القديمة', 'تاريخ الديمقراطية', 'تاريخ الملكية', 'تاريخ الجمهوريات', 'تاريخ الدساتير', 'المحاكم', 'العقوبات', 'حقوق الإنسان'] },
+    { name: 'تاريخ المرأة', icon: '👩', subcategories: ['حق التصويت', 'التعليم', 'العمل', 'نساء حاكمات', 'نساء عالمات', 'نساء فنانات', 'نساء محاربات', 'حركات نسوية'] },
+    { name: 'تاريخ الطعام والزراعة', icon: '🌾', subcategories: ['تاريخ الخبز', 'تاريخ الشاي', 'تاريخ القهوة', 'تاريخ التوابل', 'الثورة الزراعية', 'تاريخ الصيد', 'تاريخ الرعي', 'المجاعات'] },
+    { name: 'تاريخ الأدب والكتابة', icon: '📚', subcategories: ['تاريخ الكتابة', 'المكتبات القديمة', 'الأدب العربي', 'الأدب الإنجليزي', 'الأدب الفرنسي', 'الشعر', 'الرواية', 'المخطوطات'] }
+];
+
+// ---------- الدالة الرئيسية ----------
 async function buildHeader() {
     const settings = await getAllSettingsCached();
     const siteName = settings.siteName || 'ALSHANFRICC';
-    const primaryColor = settings.primaryColor || '#c48b4c';
-    const titleFont = settings.titleFont || 'Playfair Display';
+    const primaryColor = settings.primaryColor || '#8b5e3c';
+    const titleFont = settings.titleFont || 'Cinzel';
     const darkMode = settings.darkMode || false;
     const headerBgImage = settings.headerBgImage || '';
 
+    // جلب أو بناء التبويبات
     const catsSnapshot = await db.collection('categories').orderBy('order').get();
-    categoriesData = [];
-    catsSnapshot.forEach(doc => categoriesData.push({ id: doc.id, ...doc.data() }));
+    if (catsSnapshot.empty) {
+        // أول تشغيل: إنشاء التبويبات من المصفوفة الثابتة
+        console.log('📂 إنشاء التبويبات الافتراضية...');
+        for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+            const cat = DEFAULT_CATEGORIES[i];
+            const subcategories = cat.subcategories.map(name => ({ id: generateId(), name }));
+            await db.collection('categories').add({
+                name: cat.name,
+                icon: cat.icon,
+                order: i,
+                subcategories
+            });
+        }
+        // إعادة جلب التبويبات
+        const newSnapshot = await db.collection('categories').orderBy('order').get();
+        categoriesData = [];
+        newSnapshot.forEach(doc => categoriesData.push({ id: doc.id, ...doc.data() }));
+    } else {
+        categoriesData = [];
+        catsSnapshot.forEach(doc => categoriesData.push({ id: doc.id, ...doc.data() }));
+    }
 
     const headerDiv = document.getElementById('site-header');
 
-    // تطبيق الخلفية
     if (headerBgImage) {
         headerDiv.style.backgroundImage = `url('${headerBgImage}')`;
         headerDiv.style.backgroundSize = 'cover';
@@ -31,7 +77,6 @@ async function buildHeader() {
         headerDiv.classList.remove('has-bg-image');
     }
 
-    // بناء الهيدر الرئيسي (الكامل)
     headerDiv.innerHTML = `
         <div class="header-top">
             <div class="logo" onclick="goHome()">
@@ -45,6 +90,7 @@ async function buildHeader() {
                 <span class="icon-btn" id="searchToggle" title="بحث">🔍</span>
                 <span class="icon-btn" id="notificationBell" title="الإشعارات">🔔</span>
                 <span class="icon-btn" id="darkModeBtn" title="الوضع الليلي">${darkMode ? '☀️' : '🌙'}</span>
+                <span class="icon-btn hamburger-btn" id="hamburgerBtn" title="القائمة">☰</span>
             </div>
         </div>
         <div class="search-bar" id="searchBar" style="display:none;">
@@ -58,48 +104,39 @@ async function buildHeader() {
         <div class="nav-container" id="navContainer">
             <div class="nav-tabs" id="mainTabs">
                 <div class="tab-item ${!window.currentCategoryId ? 'active' : ''}" onclick="handleTabClick(event, null)">🏠 الرئيسية</div>
-                ${categoriesData.map(cat => `
-                    <div class="tab-item" data-id="${cat.id}" onclick="handleTabClick(event, '${cat.id}')">
-                        ${cat.name} ${cat.subcategories && cat.subcategories.length ? '▾' : ''}
-                    </div>
-                `).join('')}
+                ${categoriesData.map(cat => {
+                    const subCount = cat.subcategories ? cat.subcategories.length : 0;
+                    return `
+                        <div class="tab-item" data-id="${cat.id}" onclick="handleTabClick(event, '${cat.id}')">
+                            ${cat.name} ${subCount > 0 ? `<span class="tab-count">(${subCount})</span>` : ''}
+                        </div>
+                    `;
+                }).join('')}
             </div>
             <div class="subcategory-bar" id="subcategoryBar" style="display:none;"></div>
         </div>
-    `;
-
-    // بناء الهيدر المدمج (يظهر عند التمرير للأسفل)
-    const compactHeader = document.createElement('div');
-    compactHeader.id = 'compact-header';
-    compactHeader.className = 'compact-header hidden';
-    compactHeader.innerHTML = `
-        <div class="compact-logo" onclick="goHome()">
-            ${(() => {
-                const match = siteName.match(/^(.*?)(CC)$/i);
-                if (match) return `<span>${match[1]}</span><span class="logo-cc">${match[2]}</span>`;
-                return siteName;
-            })()}
-        </div>
-        <div class="compact-info">
-            <span id="compactBreadcrumb"></span>
-        </div>
-        <div class="compact-icons">
-            <span class="icon-btn compact-icon" id="compactSearchToggle" title="بحث">🔍</span>
-            <span class="icon-btn compact-icon" id="compactNotificationBell" title="الإشعارات">🔔</span>
-            <span class="icon-btn compact-icon" id="compactDarkModeBtn" title="الوضع الليلي">${darkMode ? '☀️' : '🌙'}</span>
+        <!-- قائمة الهامبرغر الجانبية -->
+        <div class="hamburger-menu" id="hamburgerMenu" style="display:none;">
+            <div class="hamburger-menu-header">
+                <span>القائمة</span>
+                <button class="hamburger-close-btn" onclick="closeHamburger()">✕</button>
+            </div>
+            <div class="hamburger-tabs">
+                <div class="hamburger-tab-item" onclick="handleTabClick(event, null); closeHamburger();">🏠 الرئيسية</div>
+                ${categoriesData.map(cat => `
+                    <div class="hamburger-tab-item" data-id="${cat.id}" onclick="handleTabClick(event, '${cat.id}'); closeHamburger();">
+                        ${cat.name} (${cat.subcategories ? cat.subcategories.length : 0})
+                    </div>
+                `).join('')}
+            </div>
         </div>
     `;
-    headerDiv.insertAdjacentElement('afterend', compactHeader);
 
     attachHeaderEvents();
-    attachCompactHeaderEvents();
     if (darkMode) document.body.classList.add('dark-mode');
-
-    // تحديث أولي
-    updateHeaderOnScroll();
-    window.addEventListener('scroll', updateHeaderOnScroll);
 }
 
+// ---------- ربط الأحداث ----------
 function attachHeaderEvents() {
     document.getElementById('searchToggle').addEventListener('click', () => {
         const bar = document.getElementById('searchBar');
@@ -116,12 +153,8 @@ function attachHeaderEvents() {
     const searchLabel = document.getElementById('searchLabel');
     if (searchInput && searchLabel) {
         searchInput.addEventListener('input', function() {
-            if (this.value.trim()) {
-                searchLabel.style.opacity = '0';
-            } else {
-                searchLabel.style.opacity = '1';
-            }
-            if (typeof searchPosts === 'function') searchPosts(this.value);
+            if (this.value.trim()) { searchLabel.style.opacity = '0'; }
+            else { searchLabel.style.opacity = '1'; }
         });
         searchInput.addEventListener('focus', () => { searchLabel.style.opacity = '0'; });
         searchInput.addEventListener('blur', function() {
@@ -143,62 +176,27 @@ function attachHeaderEvents() {
 
     document.getElementById('darkModeBtn').addEventListener('click', toggleDarkMode);
 
+    document.getElementById('hamburgerBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const menu = document.getElementById('hamburgerMenu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    });
+
     document.addEventListener('click', (e) => {
         const bar = document.getElementById('searchBar');
         const toggle = document.getElementById('searchToggle');
         if (!bar.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)) {
             bar.style.display = 'none';
         }
-    });
-}
-
-function attachCompactHeaderEvents() {
-    document.getElementById('compactSearchToggle').addEventListener('click', () => {
-        document.getElementById('searchToggle').click();
-    });
-    document.getElementById('compactNotificationBell').addEventListener('click', () => {
-        document.getElementById('notificationBell').click();
-    });
-    document.getElementById('compactDarkModeBtn').addEventListener('click', () => {
-        document.getElementById('darkModeBtn').click();
-    });
-}
-
-function updateHeaderOnScroll() {
-    const scrollY = window.scrollY;
-    const header = document.getElementById('site-header');
-    const compact = document.getElementById('compact-header');
-    const threshold = 100;
-
-    if (scrollY > threshold) {
-        header.classList.add('header-hidden');
-        compact.classList.remove('hidden');
-        compact.classList.add('visible');
-        updateCompactBreadcrumb();
-    } else {
-        header.classList.remove('header-hidden');
-        compact.classList.remove('visible');
-        compact.classList.add('hidden');
-    }
-}
-
-function updateCompactBreadcrumb() {
-    const breadcrumbSpan = document.getElementById('compactBreadcrumb');
-    if (!breadcrumbSpan) return;
-
-    let text = 'الرئيسية';
-    if (window.currentCategoryId) {
-        const cat = categoriesData.find(c => c.id === window.currentCategoryId);
-        if (cat) {
-            text = cat.name;
-            if (window.currentSubcategoryId) {
-                const subs = cat.subcategories || [];
-                const sub = subs.find(s => s.id === window.currentSubcategoryId);
-                if (sub) text += ` > ${sub.name}`;
-            }
+        const menu = document.getElementById('hamburgerMenu');
+        if (menu && menu.style.display === 'block' && !e.target.closest('.hamburger-menu') && e.target !== document.getElementById('hamburgerBtn')) {
+            menu.style.display = 'none';
         }
-    }
-    breadcrumbSpan.textContent = text;
+    });
+}
+
+function closeHamburger() {
+    document.getElementById('hamburgerMenu').style.display = 'none';
 }
 
 // ---------- التبويبات والفروع ----------
@@ -212,7 +210,6 @@ function handleTabClick(event, catId) {
         if (homeTab) homeTab.classList.add('active');
         if (typeof loadPosts === 'function') loadPosts(1);
         scrollToPosts();
-        updateCompactBreadcrumb();
         return;
     }
 
@@ -228,7 +225,6 @@ function handleTabClick(event, catId) {
     }
     if (typeof loadPosts === 'function') loadPosts(1);
     scrollToPosts();
-    updateCompactBreadcrumb();
 }
 
 function showSubcategories(subcategories) {
@@ -243,7 +239,6 @@ function showSubcategories(subcategories) {
     html += '</div>';
     bar.innerHTML = html;
     bar.style.display = 'block';
-    updateCompactBreadcrumb();
 }
 
 function hideSubcategories() {
@@ -254,7 +249,6 @@ function hideSubcategoriesAndReset() {
     hideSubcategories();
     window.currentSubcategoryId = null;
     if (typeof loadPosts === 'function') loadPosts(1);
-    updateCompactBreadcrumb();
 }
 
 function selectSubcategory(subId) {
@@ -267,7 +261,6 @@ function selectSubcategory(subId) {
     }
     if (typeof loadPosts === 'function') loadPosts(1);
     scrollToPosts();
-    updateCompactBreadcrumb();
 }
 
 function activateTab(catId, subId) {
@@ -287,14 +280,9 @@ function activateTab(catId, subId) {
                     if (subItem) subItem.classList.add('active');
                 }, 50);
             }
-        } else {
-            hideSubcategories();
-        }
-    } else {
-        goHome();
-    }
+        } else { hideSubcategories(); }
+    } else { goHome(); }
     if (typeof loadPosts === 'function') loadPosts(1);
-    updateCompactBreadcrumb();
 }
 
 function goHome() {
@@ -305,7 +293,6 @@ function goHome() {
     document.querySelector('.tab-item[onclick*="null"]')?.classList.add('active');
     if (typeof loadPosts === 'function') loadPosts(1);
     scrollToPosts();
-    updateCompactBreadcrumb();
 }
 
 function scrollToPosts() {
@@ -313,14 +300,14 @@ function scrollToPosts() {
     if (feed) feed.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// ---------- الوضع الليلي ----------
 async function toggleDarkMode() {
     const isDark = document.body.classList.toggle('dark-mode');
     document.getElementById('darkModeBtn').textContent = isDark ? '☀️' : '🌙';
-    const compactBtn = document.getElementById('compactDarkModeBtn');
-    if (compactBtn) compactBtn.textContent = isDark ? '☀️' : '🌙';
     await updateSetting('darkMode', isDark);
 }
 
+// ---------- الإشعارات ----------
 async function loadNotifications() {
     const existing = document.getElementById('notifications-dropdown');
     if (existing) existing.remove();
