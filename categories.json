@@ -1,0 +1,22 @@
+[
+  { "id": "cat-1", "name": "أخبار التقنية", "icon": "📰", "order": 0, "subcategories": [{"id": "sub-1-1", "name": "أخبار آبل"}, {"id": "sub-1-2", "name": "أخبار جوجل"}, {"id": "sub-1-3", "name": "أخبار سامسونج"}, {"id": "sub-1-4", "name": "تسريبات"}] },
+  { "id": "cat-2", "name": "الهواتف الذكية", "icon": "📱", "order": 1, "subcategories": [{"id": "sub-2-1", "name": "آيفون"}, {"id": "sub-2-2", "name": "سامسونج جالاكسي"}, {"id": "sub-2-3", "name": "شاومي"}, {"id": "sub-2-4", "name": "ون بلس"}] },
+  { "id": "cat-3", "name": "التابلت والأجهزة اللوحية", "icon": "📲", "order": 2, "subcategories": [{"id": "sub-3-1", "name": "آيباد"}, {"id": "sub-3-2", "name": "جالاكسي تاب"}] },
+  { "id": "cat-4", "name": "السماعات والصوتيات", "icon": "🎧", "order": 3, "subcategories": [{"id": "sub-4-1", "name": "سماعات لاسلكية"}, {"id": "sub-4-2", "name": "سماعات آبل"}] },
+  { "id": "cat-5", "name": "الحواسيب واللابتوب", "icon": "💻", "order": 4, "subcategories": [{"id": "sub-5-1", "name": "لابتوب آبل"}, {"id": "sub-5-2", "name": "لابتوب ويندوز"}, {"id": "sub-5-3", "name": "لابتوب جيمنج"}] },
+  { "id": "cat-6", "name": "الساعات الذكية", "icon": "⌚", "order": 5, "subcategories": [{"id": "sub-6-1", "name": "آبل ووتش"}, {"id": "sub-6-2", "name": "جالاكسي ووتش"}] },
+  { "id": "cat-7", "name": "التطبيقات", "icon": "📱", "order": 6, "subcategories": [{"id": "sub-7-1", "name": "تطبيقات آيفون"}, {"id": "sub-7-2", "name": "تطبيقات أندرويد"}] },
+  { "id": "cat-8", "name": "الألعاب", "icon": "🎮", "order": 7, "subcategories": [{"id": "sub-8-1", "name": "ألعاب آيفون"}, {"id": "sub-8-2", "name": "ألعاب أندرويد"}, {"id": "sub-8-3", "name": "ألعاب PC"}] },
+  { "id": "cat-9", "name": "الذكاء الاصطناعي", "icon": "🤖", "order": 8, "subcategories": [{"id": "sub-9-1", "name": "ChatGPT"}, {"id": "sub-9-2", "name": "أدوات AI"}] },
+  { "id": "cat-10", "name": "البرمجة والتطوير", "icon": "‍💻", "order": 9, "subcategories": [{"id": "sub-10-1", "name": "تطوير تطبيقات"}, {"id": "sub-10-2", "name": "تطوير ويب"}] },
+  { "id": "cat-11", "name": "الأمن السيبراني", "icon": "", "order": 10, "subcategories": [{"id": "sub-11-1", "name": "حماية البيانات"}, {"id": "sub-11-2", "name": "برامج ضارة"}] },
+  { "id": "cat-12", "name": "الشبكات والإنترنت", "icon": "🌐", "order": 11, "subcategories": [{"id": "sub-12-1", "name": "5G"}, {"id": "sub-12-2", "name": "واي فاي"}] },
+  { "id": "cat-13", "name": "التصوير والكاميرات", "icon": "📷", "order": 12, "subcategories": [{"id": "sub-13-1", "name": "كاميرات هاتف"}, {"id": "sub-13-2", "name": "عدسات"}] },
+  { "id": "cat-14", "name": "التلفزيونات والشاشات", "icon": "📺", "order": 13, "subcategories": [{"id": "sub-14-1", "name": "شاشات OLED"}, {"id": "sub-14-2", "name": "تلفزيونات ذكية"}] },
+  { "id": "cat-15", "name": "السيارات التقنية", "icon": "🚗", "order": 14, "subcategories": [{"id": "sub-15-1", "name": "سيارات كهربائية"}, {"id": "sub-15-2", "name": "تسلا"}] },
+  { "id": "cat-16", "name": "المنازل الذكية", "icon": "🏠", "order": 15, "subcategories": [{"id": "sub-16-1", "name": "أليكسا"}, {"id": "sub-16-2", "name": "إضاءة ذكية"}] },
+  { "id": "cat-17", "name": "الطاقة والبطاريات", "icon": "🔋", "order": 16, "subcategories": [{"id": "sub-17-1", "name": "شواحن سريعة"}, {"id": "sub-17-2", "name": "بنوك طاقة"}] },
+  { "id": "cat-18", "name": "المقارنات", "icon": "⚖️", "order": 17, "subcategories": [{"id": "sub-18-1", "name": "مقارنات هواتف"}, {"id": "sub-18-2", "name": "مقارنات لابتوب"}] },
+  { "id": "cat-19", "name": "المراجعات", "icon": "⭐", "order": 18, "subcategories": [{"id": "sub-19-1", "name": "مراجعات هواتف"}, {"id": "sub-19-2", "name": "مراجعات سماعات"}] },
+  { "id": "cat-20", "name": "نصائح وحيل", "icon": "💡", "order": 19, "subcategories": [{"id": "sub-20-1", "name": "نصائح آيفون"}, {"id": "sub-20-2", "name": "نصائح أندرويد"}] }
+]
