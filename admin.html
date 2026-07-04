@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - ALSHANFRICC</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #f5f6f8;
+            direction: rtl;
+        }
+        
+        /* شاشة تسجيل الدخول */
+        #login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #c48b4c 0%, #a6733a 100%);
+        }
+        #login-form {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+        }
+        #login-form h2 {
+            color: #c48b4c;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+        }
+        #login-form input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: 2px solid #e4e6eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        #login-form input:focus {
+            border-color: #c48b4c;
+        }
+        #login-form button {
+            width: 100%;
+            padding: 14px;
+            background: #c48b4c;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+        #login-form button:hover {
+            background: #a6733a;
+        }
+        
+        /* لوحة التحكم */
+        #admin-screen {
+            display: none;
+            min-height: 100vh;
+        }
+        
+        /* الشريط الجانبي */
+        .admin-sidebar {
+            width: 240px;
+            background: white;
+            border-left: 1px solid #e4e6eb;
+            padding: 20px 0;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow-y: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            z-index: 100;
+        }
+        .admin-sidebar h3 {
+            padding: 0 20px 20px;
+            color: #c48b4c;
+            font-size: 1.3rem;
+            border-bottom: 1px solid #e4e6eb;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .admin-sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .admin-sidebar ul li {
+            padding: 14px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #65676b;
+            transition: all 0.3s;
+            border-right: 3px solid transparent;
+        }
+        .admin-sidebar ul li:hover {
+            background: #f5f6f8;
+            color: #1c1e21;
+        }
+        .admin-sidebar ul li.active {
+            background: #fef9f3;
+            color: #c48b4c;
+            border-right-color: #c48b4c;
+        }
+        
+        /* المحتوى الرئيسي */
+        #content-panel {
+            flex: 1;
+            margin-right: 240px;
+            padding: 30px;
+            min-height: 100vh;
+        }
+        #content-panel h2 {
+            color: #c48b4c;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            border-bottom: 2px solid #e4e6eb;
+            padding-bottom: 10px;
+        }
+        
+        /* البطاقات */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .card-header {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #c48b4c;
+            border-bottom: 1px solid #e4e6eb;
+            padding-bottom: 10px;
+        }
+        
+        /* النماذج */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: #1c1e21;
+            font-size: 0.9rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e4e6eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s;
+            background: white;
+        }
+        .form-control:focus {
+            border-color: #c48b4c;
+            box-shadow: 0 0 0 3px rgba(196,139,76,0.1);
+        }
+        textarea.form-control {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Fira Code', monospace;
+        }
+        
+        /* الأزرار */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 22px;
+            border-radius: 25px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-primary {
+            background: #c48b4c;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #a6733a;
+        }
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #c48b4c;
+            color: #c48b4c;
+        }
+        .btn-outline:hover {
+            background: #c48b4c;
+            color: white;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 0.8rem;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        
+        /* القوائم */
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e4e6eb;
+            transition: background 0.2s;
+        }
+        .list-item:hover {
+            background: #fafafa;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item .item-info {
+            flex: 1;
+        }
+        .list-item .item-title {
+            font-weight: 700;
+        }
+        .list-item .item-meta {
+            font-size: 0.85rem;
+            color: #65676b;
+            margin-top: 4px;
+        }
+        .list-item .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        /* التبويبات */
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .admin-tab {
+            padding: 10px 22px;
+            background: #f0f2f5;
+            border: none;
+            border-radius: 25px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            color: #65676b;
+        }
+        .admin-tab.active {
+            background: #c48b4c;
+            color: white;
+        }
+        .admin-tab:hover:not(.active) {
+            background: #e4e6eb;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        /* النافذة المنبثقة */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 750px;
+            width: 100%;
+            padding: 30px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+        }
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        /* التنبيهات */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 600;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 99999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast-container.show {
+            opacity: 1;
+        }
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            min-width: 280px;
+            max-width: 600px;
+        }
+        .toast-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #28a745;
+        }
+        .toast-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #dc3545;
+        }
+        
+        /* متجاوب */
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 80%;
+                max-width: 300px;
+                z-index: 200;
+                transition: right 0.3s;
+            }
+            .admin-sidebar.open {
+                right: 0;
+            }
+            #content-panel {
+                margin-right: 0;
+                padding: 20px;
+            }
+            .mobile-toggle {
+                display: block !important;
+                position: fixed;
+                top: 15px;
+                right: 15px;
+                z-index: 300;
+                background: #c48b4c;
+                color: white;
+                border: none;
+                padding: 10px 14px;
+                border-radius: 50%;
+                font-size: 1.3rem;
+                cursor: pointer;
+            }
+        }
+        .mobile-toggle {
+            display: none;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* عناصر المحتوى */
+        .content-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .content-item-info {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+        
+        /* Color picker */
+        input[type="color"] {
+            width: 100%;
+            height: 50px;
+            border: 1px solid #e4e6eb;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen">
+        <form id="login-form">
+            <h2>🔐 لوحة التحكم</h2>
+            <p style="color:#666;margin-bottom:20px;">ALSHANFRICC - التقنية والهواتف</p>
+            <input type="password" id="token-input" placeholder="GitHub Token (ghp_xxxxx)" required>
+            <button type="submit">دخول</button>
+            <div id="login-error" style="color:#e74c3c;margin-top:15px;display:none;"></div>
+        </form>
+    </div>
+
+    <!-- لوحة التحكم -->
+    <div id="admin-screen">
+        <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+        
+        <!-- الشريط الجانبي -->
+        <div class="admin-sidebar" id="sidebar">
+            <h3>⚙️ لوحة التحكم</h3>
+            <ul>
+                <li data-section="posts" class="active">📝 المنشورات</li>
+                <li data-section="categories">📂 التصنيفات</li>
+                <li data-section="authors">✍️ الكتّاب</li>
+                <li data-section="settings">⚙️ الإعدادات</li>
+                <li data-section="staticpages">📄 الصفحات الثابتة</li>
+                <li id="logout-btn">🚪 تسجيل الخروج</li>
+            </ul>
+        </div>
+        
+        <!-- المحتوى -->
+        <div id="content-panel">
+            <div class="loading-spinner">⏳ جاري التحميل...</div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/github-api.js"></script>
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/admin.js"></script>
+
+</body>
+  </html>
