@@ -3,10 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="page-title">ALSHANFRICC</title>
-    <meta name="description" content="مجلة ALSHANFRICC - مساحة الأناقة والمعرفة">
-    <link id="dynamic-font-link" rel="stylesheet" href="">
+    <title>ALSHANFRICC - التقنية والهواتف الذكية</title>
+    <meta name="description" content="موقع متخصص في التقنية والهواتف الذكية - مراجعات، أخبار، مقارنات، وتطبيقات">
+    <meta name="keywords" content="تقنية, هواتف, موبايلات, آيفون, سامسونج, أندرويد, تطبيقات, مراجعات">
+    <meta property="og:title" content="ALSHANFRICC - التقنية والهواتف">
+    <meta property="og:description" content="موقع متخصص في التقنية والهواتف الذكية">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ar_SA">
+    <link rel="canonical" href="https://kings591998.github.io/King/">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
 
@@ -24,100 +31,83 @@
         </div>
     </div>
 
-    <!-- عرض فوري للهيكل الأساسي من localStorage -->
-    <div id="instant-header"></div>
-    <script>
-        (function(){
-            try {
-                var raw = localStorage.getItem('alshanfricc_settings_cache');
-                if (raw) {
-                    var s = JSON.parse(raw).settings;
-                    if (s) {
-                        var header = document.getElementById('instant-header');
-                        if (header) {
-                            header.innerHTML = '<div style="background:rgba(0,0,0,0.4);color:white;padding:12px 20px;font-size:1.8rem;font-weight:bold;text-align:center;backdrop-filter:blur(10px);position:fixed;top:0;left:0;right:0;z-index:1000;">'+(s.siteName||'ALSHANFRICC')+'</div>';
-                            document.body.style.paddingTop = '60px';
-                        }
-                        document.documentElement.style.setProperty('--primary', s.primaryColor||'#c48b4c');
-                        document.body.style.fontFamily = (s.bodyFont||'Cairo')+', sans-serif';
-                    }
-                }
-            }catch(e){}
-        })();
-    </script>
-
+    <!-- الهيدر -->
     <header id="site-header"></header>
 
+    <!-- المحتوى الرئيسي -->
     <main class="main-layout">
-        <section id="posts-feed" class="feed"></section>
+        <section id="posts-feed" class="feed">
+            <div class="loading-spinner">⏳ جاري تحميل المقالات...</div>
+        </section>
+        
         <aside class="right-sidebar">
             <div class="sticky-widget">
-                <h4>روابط سريعة</h4>
-                <div id="sidebar-buttons"></div>
+                <h4> إحصائيات</h4>
+                <div id="stats-widget">
+                    <p>📝 المقالات: <span id="total-posts">0</span></p>
+                    <p>👁️ المشاهدات: <span id="total-views">0</span></p>
+                </div>
+            </div>
+            
+            <div class="sticky-widget" style="margin-top: 20px;">
+                <h4>🏷️ التصنيفات</h4>
+                <div id="categories-widget"></div>
             </div>
         </aside>
     </main>
 
+    <!-- الفوتر -->
     <footer id="site-footer"></footer>
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+    <!-- أزرار التمرير -->
+    <button id="backToTop" class="scroll-btn back-to-top-btn" onclick="scrollToTop()" style="display:none;">⬆️</button>
 
-    <script src="assets/js/firebase-config.js"></script>
+    <!-- JavaScript -->
+    <script src="assets/js/github-api.js"></script>
     <script src="assets/js/utils.js"></script>
     <script src="assets/js/header.js"></script>
     <script src="assets/js/body.js"></script>
     <script src="assets/js/footer.js"></script>
 
     <script>
-        (function() {
-            const savedFont = localStorage.getItem('selectedFont') || 'Cairo';
-            const link = document.getElementById('dynamic-font-link');
-            link.href = `https://fonts.googleapis.com/css2?family=${savedFont.replace(/ /g, '+')}:wght@400;700&display=swap`;
-            document.body.style.fontFamily = savedFont + ', sans-serif';
-        })();
-
-        function startPreloaderAnimation() {
-            const bar = document.getElementById('preloader-bar');
-            const number = document.getElementById('preloader-number');
-            if (!bar || !number) return;
-            let progress = 0;
-            const interval = setInterval(() => {
-                const increment = Math.max(1, Math.floor((100 - progress) / 15));
-                progress = Math.min(100, progress + increment);
-                bar.style.width = progress + '%';
-                number.textContent = progress + '%';
-                if (progress >= 100) clearInterval(interval);
-            }, 80);
-        }
-
-        window.addEventListener('DOMContentLoaded', async () => {
+        // تحميل المقالات عند فتح الصفحة
+        document.addEventListener('DOMContentLoaded', async function() {
             try {
-                startPreloaderAnimation();
-                await buildHeader();
-                await loadPosts(1);
-                await buildFooter();
-
-                const siteName = await getSetting('siteName', 'ALSHANFRICC');
-                document.getElementById('page-title').textContent = siteName;
-
-                const instant = document.getElementById('instant-header');
-                if (instant) instant.style.display = 'none';
-
+                // إخفاء شاشة التحميل
                 setTimeout(() => {
                     const preloader = document.getElementById('preloader');
                     if (preloader) {
-                        preloader.classList.add('hidden');
+                        preloader.style.opacity = '0';
                         setTimeout(() => preloader.remove(), 500);
                     }
-                }, 300);
+                }, 1000);
 
-                console.log('✅ تم تحميل الموقع بنجاح');
+                // تحميل المقالات
+                await loadAllPosts();
+                
+                // بناء الهيدر والفوتر
+                if (typeof buildHeader === 'function') await buildHeader();
+                if (typeof buildFooter === 'function') await buildFooter();
+                
             } catch (error) {
-                console.error('❌ خطأ في تحميل الموقع:', error);
-                document.getElementById('preloader')?.classList.add('hidden');
+                console.error('خطأ في تحميل الصفحة:', error);
+                document.getElementById('posts-feed').innerHTML = 
+                    '<div class="error-message">⚠️ حدث خطأ في تحميل المقالات</div>';
+            }
+        });
+
+        // التمرير للأعلى
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // إظهار زر العودة للأعلى
+        window.addEventListener('scroll', function() {
+            const btn = document.getElementById('backToTop');
+            if (window.scrollY > 300) {
+                btn.style.display = 'block';
+            } else {
+                btn.style.display = 'none';
             }
         });
     </script>
