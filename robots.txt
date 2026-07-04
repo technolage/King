@@ -1,0 +1,24 @@
+# robots.txt - ALSHANFRICC
+User-agent: *
+Allow: /
+Allow: /posts/
+Allow: /assets/css/
+Allow: /assets/js/body.js
+Allow: /assets/js/header.js
+Allow: /assets/js/footer.js
+Allow: /assets/js/utils.js
+
+# منع فهرسة لوحة التحكم وملفات الأدمن
+Disallow: /admin.html
+Disallow: /assets/js/admin.js
+Disallow: /assets/js/github-api.js
+Disallow: /posts-list.json
+Disallow: /settings.json
+Disallow: /categories.json
+Disallow: /authors.json
+Disallow: /static-pages.json
+
+# منع الزحف على ملفات JSON الحساسة
+Disallow: /*.json$
+
+Sitemap: https://kings591998.github.io/King/sitemap.xml
